@@ -30,7 +30,7 @@ def replace_token(old_token, new_token):
 
 def op_add_or_replace_kv(key, value, params):
     assert key.endswith('=')
-    if any([x.startswith(key) for x in params]):
+    if any(x.startswith(key) for x in params):
         return op_replace_kv(key, value, params)
     return params + [(key + (value(key, None, params)
                              if callable(value) else value))]
@@ -55,10 +55,10 @@ def replace_kv(key, value):
     return partial(op_replace_kv, key, value)
 
 def op_remove_keys(keys, params):
-    return [x for x in params if all([not x.startswith(k) for k in keys])]
+    return [x for x in params if all(not x.startswith(k) for k in keys)]
 
 def remove_keys(*keys):
-    assert all([k.endswith('=') for k in keys])
+    assert all(k.endswith('=') for k in keys)
     return partial(op_remove_keys, keys)
 
 # Predicates
@@ -70,10 +70,10 @@ def contains_token(token):
     return lambda starter, params: token in params
 
 def contains_all_tokens(*tokens):
-    return lambda starter, params: all([t in params for t in tokens])
+    return lambda starter, params: all(t in params for t in tokens)
 
 def contains_any_token(*tokens):
-    return lambda starter, params: any([t in params for t in tokens])
+    return lambda starter, params: any(t in params for t in tokens)
 
 def contains_key(key):
     assert type(key)==str
@@ -81,7 +81,7 @@ def contains_key(key):
     return lambda starter, params: any(x.startswith(key) for x in params)
 
 def contains_all_keys(*keys):
-    assert all([k.endswith('=') for k in keys])
+    assert all(k.endswith('=') for k in keys)
     return lambda starter, params: all(any(p.startswith(k) for p in params)
                               for k in keys)
 
@@ -148,9 +148,14 @@ def test_rewrite_machinary():
            "kernel /boot/vmlinuz bar=/lib/live foo bar key2=value2"
 
     print ('Test kv replace with computed value (bang! at head).')
-    assert transform(replace_kv('bar=', lambda k, old_v, params: '!' + old_v),
-                     always, boot_line)==\
-                     "kernel /boot/vmlinuz bar=!baz foo bar key2=value2"
+    assert (
+        transform(
+            replace_kv('bar=', lambda k, old_v, params: f'!{old_v}'),
+            always,
+            boot_line,
+        )
+        == "kernel /boot/vmlinuz bar=!baz foo bar key2=value2"
+    )
 
     print ('Test key removal')
     assert transform(remove_keys('bar=','key2='), always, boot_line)==\

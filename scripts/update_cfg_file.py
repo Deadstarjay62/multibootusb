@@ -27,14 +27,15 @@ from .param_rewrite import add_tokens, remove_tokens, replace_token, \
 def dont_require_tweaking(fname, content, match_start, match_end):
     # Avoid fixing a path on a comment line
     beginning_of_line = content.rfind('\n', 0, match_start)
-    if beginning_of_line<0:
-        beginning_of_line = 0
+    beginning_of_line = max(beginning_of_line, 0)
     if content[beginning_of_line:match_start].lstrip()[:1]=='#':
         return True
     if fname.startswith(('cdrom/', 'dev/')):
         return True
-    if (4 <= match_start and # Don't write an arg of 'init=' param.
-        content[match_start-4:match_start+1] == 'init='):
+    if (
+        match_start >= 4
+        and content[match_start - 4 : match_start + 1] == 'init='
+    ):
         return True
 
 def fix_abspath_r(pattern, string, install_dir, iso_name, kept_paths):
@@ -46,36 +47,33 @@ def fix_abspath_r(pattern, string, install_dir, iso_name, kept_paths):
     prologue, specified_path = m.group(1), m.group(2)
 
     if dont_require_tweaking(specified_path, string, start, end):
-        return [(string[:start] + prologue + '/' + specified_path,
-                 '/%s is kept as is.' % specified_path)] \
-                + fix_abspath_r(pattern, string[end:], install_dir, iso_name,
-                                kept_paths)
+        return [
+            (
+                string[:start] + prologue + '/' + specified_path,
+                f'/{specified_path} is kept as is.',
+            )
+        ] + fix_abspath_r(
+            pattern, string[end:], install_dir, iso_name, kept_paths
+        )
 
-    # See if a path that has 'boot/' prepended is a better choice.
-    # E.g. Debian debian-live-9.4.0-amd64-cinnamon has a loopback.cfg
-    # which contains "source /grub/grub.cfg".
-    specified_path_exists = os.path.exists(
-        os.path.join(install_dir, specified_path))
-    if specified_path_exists:
+    if specified_path_exists := os.path.exists(
+        os.path.join(install_dir, specified_path)
+    ):
         # Confidently accept what is specified.
         selected_path, fixed = specified_path, False
     elif os.path.exists(os.path.join(install_dir, 'boot', specified_path)):
-        selected_path, fixed = ('boot/' + specified_path,
-                                "Prepended '/boot/' to %s" % specified_path)
-    # A path specified by 'preseed/file=' or 'file=' is utilized
-    # after OS boots up. Doing this for grub is moot.
-    #elif specified_path.startswith('cdrom/') and \
-    #     os.path.exists(os.path.join(install_dir, # len('cdrom/') => 6
-    #                                 specified_path[6:])):
-    #    # See /boot/grub/loopback.cfg in 
-    #    # ubuntu-14.04.5-desktop-amd64.iso for an example of this case.
-    #    selected_path, fixed = specified_path[6:], "Removed '/cdrom/'"
+        selected_path, fixed = (
+            f'boot/{specified_path}',
+            f"Prepended '/boot/' to {specified_path}",
+        )
     elif specified_path.endswith('.efi') and \
          os.path.exists(os.path.join(install_dir, specified_path[:-4])):
         # Avira-RS provides boot/grub/loopback.cfg which points
         # to non-existent /boot/grub/vmlinuz.efi.
-        selected_path, fixed = (specified_path[:-4],
-                                "Removed '.efi' from %s" % specified_path)
+        selected_path, fixed = (
+            specified_path[:-4],
+            f"Removed '.efi' from {specified_path}",
+        )
     else:
         # Reluctantly accept what is specified.
         if specified_path not in kept_paths:
@@ -96,30 +94,30 @@ def fix_abspath(string, install_dir, iso_name, config_fname):
     chunks = fix_abspath_r(
         path_expression, string, install_dir, iso_name,  kept_paths)
     if len(kept_paths)==1:
-        log("In '%s', '/%s' is kept as is though it does not exist."
-            % (config_fname, kept_paths[0]))
-    elif 2<=len(kept_paths):
-        log("In '%s', "
-            "following paths are used as they are though they don't exist."
-            % config_fname)
+        log(
+            f"In '{config_fname}', '/{kept_paths[0]}' is kept as is though it does not exist."
+        )
+    elif len(kept_paths) >= 2:
+        log(
+            f"In '{config_fname}', following paths are used as they are though they don't exist."
+        )
         for kept_path in kept_paths:
-            log('  /' + kept_path)
-    tweaked_chunks = [c for c in chunks if c[1]]
-    if len(tweaked_chunks) == 0:
-        # Fallback to the legacy implementation so that
-        # this tweak brings as little breakage as possible.
-        replace_text = r'\1/multibootusb/' + iso_name + '/'
-        return re.sub(r'([ \t =,])/', replace_text, string)
-    else:
-        log("Applied %s on '%s' as shown below:" %
-            (len(tweaked_chunks)==1 and 'a rewrite exception' or
-             ('%d rewrite exceptions' % len(tweaked_chunks)), config_fname))
+            log(f'  /{kept_path}')
+    if tweaked_chunks := [c for c in chunks if c[1]]:
+        log(
+            f"Applied {len(tweaked_chunks) == 1 and 'a rewrite exception' or '%d rewrite exceptions' % len(tweaked_chunks)} on '{config_fname}' as shown below:"
+        )
         count_dict = {}
         for path, op_desc in tweaked_chunks:
             count_dict.setdefault(op_desc, []).append((path,op_desc))
         for op_desc, sub_chunks in count_dict.items():
             log("  %s [%d]" % (op_desc, len(sub_chunks)))
         return ''.join([c[0] for c in chunks])
+    else:
+        # Fallback to the legacy implementation so that
+        # this tweak brings as little breakage as possible.
+        replace_text = r'\1/multibootusb/' + iso_name + '/'
+        return re.sub(r'([ \t =,])/', replace_text, string)
 
 def update_distro_cfg_files(iso_link, usb_disk, distro, persistence=0):
     """

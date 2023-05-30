@@ -87,7 +87,7 @@ def coorect_bin_path(_file_path, search_bin_path, replace_bin_path):
     # destination = open(_file_path, "w")
     # source = open(_file_path + "~", "r").read()
 
-    with open(_file_path + "~", 'r') as _infile:
+    with open(f"{_file_path}~", 'r') as _infile:
         data = _infile.read()
 
         if re.search(search_bin_path, data, re.I):
@@ -131,20 +131,47 @@ class pkg():
 
             with open("stdeb.cfg", "w") as f:
                 f.write(stdcfg)
-            if subprocess.call('/usr/bin/python3 setup.py --command-packages=stdeb.command bdist_deb', shell=True) == 0 and \
-                    os.path.exists(os.path.join("deb_dist", "python3-multibootusb_" + self.version + "-1_all.deb")):
+            if subprocess.call(
+                '/usr/bin/python3 setup.py --command-packages=stdeb.command bdist_deb',
+                shell=True,
+            ) == 0 and os.path.exists(
+                os.path.join(
+                    "deb_dist", f"python3-multibootusb_{self.version}-1_all.deb"
+                )
+            ):
                 try:
-                    shutil.copy2(os.path.join("deb_dist", "python3-multibootusb_" + self.version + "-1_all.deb"),
-                                          os.path.join(self.release_upload_dir, "Linux"), follow_symlinks=True) #,follow_symlinks=False
+                    shutil.copy2(
+                        os.path.join(
+                            "deb_dist",
+                            f"python3-multibootusb_{self.version}-1_all.deb",
+                        ),
+                        os.path.join(self.release_upload_dir, "Linux"),
+                        follow_symlinks=True,
+                    )
                 except:
-                    os.system('cp -rf ' + os.path.join("deb_dist", "python3-multibootusb_" + self.version + "-1_all.deb") + ' ' +
-                                          os.path.join(self.release_upload_dir, "Linux"))
+                    os.system(
+                        (
+                            'cp -rf '
+                            + os.path.join(
+                                "deb_dist",
+                                f"python3-multibootusb_{self.version}-1_all.deb",
+                            )
+                            + ' '
+                            + os.path.join(self.release_upload_dir, "Linux")
+                        )
+                    )
                 if os.path.exists("stdeb.cfg"):
                     os.remove("stdeb.cfg")
                 print("\n\n\nDebian package has been created and can be found here::")
-                print((os.path.join("deb_dist", "python3-multibootusb_" + self.version + "-1_all.deb\n\n\n")))
+                print(
+                    os.path.join(
+                        "deb_dist",
+                        f"python3-multibootusb_{self.version}"
+                        + "-1_all.deb\n\n\n",
+                    )
+                )
                 result = True
-        elif self.pkg_name == 'rpm' or self.pkg_name == 'suse' or self.pkg_name == 'mageia':
+        elif self.pkg_name in ['rpm', 'suse', 'mageia']:
             print('Modifying policy file for rpm packages...')
             coorect_bin_path('org.debian.pkexec.run-multibootusb.policy', debian_bin_path, rpm_bin_path)
             if self.pkg_name == 'suse':
@@ -159,85 +186,130 @@ class pkg():
                          "Requires = " + require)
             with open("setup.cfg", "w") as f:
                 f.write(setup_cfg)
-            if subprocess.call('/usr/bin/python3 setup.py bdist_rpm', shell=True) == 0 and \
-                    os.path.exists(os.path.join("dist", "multibootusb-" + self.version + "-1.noarch.rpm")):
+            if subprocess.call(
+                '/usr/bin/python3 setup.py bdist_rpm', shell=True
+            ) == 0 and os.path.exists(
+                os.path.join("dist", f"multibootusb-{self.version}-1.noarch.rpm")
+            ):
                 if self.pkg_name == 'suse':
-                    package = "multibootusb-" + self.version + "-1suse.noarch.rpm"
+                    package = f"multibootusb-{self.version}-1suse.noarch.rpm"
                 elif self.pkg_name == 'mageia':
-                    package = "multibootusb-" + self.version + "-1mageia.noarch.rpm"
+                    package = f"multibootusb-{self.version}-1mageia.noarch.rpm"
                 else:
-                    package = "multibootusb-" + self.version + "-1.noarch.rpm"
+                    package = f"multibootusb-{self.version}-1.noarch.rpm"
                 try:
-                    shutil.copy2(os.path.join("dist", "multibootusb-" + self.version + "-1.noarch.rpm"),
-                                          os.path.join(self.release_upload_dir, "Linux", package))
+                    shutil.copy2(
+                        os.path.join(
+                            "dist", f"multibootusb-{self.version}-1.noarch.rpm"
+                        ),
+                        os.path.join(self.release_upload_dir, "Linux", package),
+                    )
                 except:
-                    os.system('cp -rf ' + os.path.join("dist", "multibootusb-" + self.version + "-1.noarch.rpm") + ' ' +
-                                          os.path.join(self.release_upload_dir, "Linux", package))
+                    os.system(
+                        (
+                            'cp -rf '
+                            + os.path.join(
+                                "dist", f"multibootusb-{self.version}-1.noarch.rpm"
+                            )
+                            + ' '
+                            + os.path.join(
+                                self.release_upload_dir, "Linux", package
+                            )
+                        )
+                    )
                 if os.path.exists("setup.cfg"):
                     os.remove("setup.cfg")
                 print("\n\n\nRPM package has been created and can be found here::")
-                print((os.path.join("dist", "multibootusb-" + self.version + "-1.noarch.rpm\n\n\n")))
+                print(
+                    os.path.join(
+                        "dist",
+                        f"multibootusb-{self.version}" + "-1.noarch.rpm\n\n\n",
+                    )
+                )
 
                 result = True
 
         elif self.pkg_name == "exe":
-            if not platform.system() == "Windows":
+            if platform.system() != "Windows":
                 print("You can generate windows executable from windows host only.")
-            else:
-                # subprocess.call('python ' + pyinstaller_path + ' --upx-dir C:\\upx multibootusb.spec', shell=True) == 0 and \
-                #        os.path.exists(os.path.join("dist", 'multibootusb-' + self.version + ".exe")):
-                if subprocess.call('python ' + pyinstaller_path + ' --uac-admin --onefile onefile-multibootusb.spec', shell=True) == 0 and \
-                        os.path.exists(os.path.join("dist", 'multibootusb-' + self.version + ".exe")):
-                    shutil.copy2(os.path.join("dist", 'multibootusb-' + self.version + ".exe"),
-                                              os.path.join(self.release_upload_dir, "Windows"))
-                    print("\n\n\nWindows binary has been created and can be found here::")
-                    print((os.path.join("dist", "multibootusb-" + self.version + ".exe\n\n\n")))
-                    result = True
+            elif subprocess.call(
+                f'python {pyinstaller_path} --uac-admin --onefile onefile-multibootusb.spec',
+                shell=True,
+            ) == 0 and os.path.exists(
+                os.path.join("dist", f'multibootusb-{self.version}.exe')
+            ):
+                shutil.copy2(
+                    os.path.join("dist", f'multibootusb-{self.version}.exe'),
+                    os.path.join(self.release_upload_dir, "Windows"),
+                )
+                print("\n\n\nWindows binary has been created and can be found here::")
+                print(os.path.join("dist", f"multibootusb-{self.version}" + ".exe\n\n\n"))
+                result = True
         elif self.pkg_name == "setup_exe":
             import re
-            if not platform.system() == "Windows":
+            if platform.system() != "Windows":
                 print("You can generate windows setup file from windows host only.")
-            else:
-                # subprocess.call('python ' + pyinstaller_path + ' --upx-dir C:\\upx multibootusb.spec', shell=True) == 0 and \
-                #        os.path.exists(os.path.join("dist", 'multibootusb-' + self.version + ".exe")):
-                # pyinstaller.exe --onefile --windowed --icon=app.ico app.py
-                if subprocess.call('python ' + pyinstaller_path + ' --onedir --uac-admin --windowed --icon=' +
-                                           os.path.join("data", "tools",  "multibootusb.ico") + ' multibootusb', shell=True) == 0:
-                    print('Successfully created one dir distribution package...\nCopying data directory...')
-                    shutil.copytree('data', os.path.join('dist', 'multibootusb', 'data'))
-                    if os.path.exists(os.path.join('dist', 'multibootusb', 'data')):
-                        print('Data directory successfully copied..')
+            elif (
+                subprocess.call(
+                    (
+                        (
+                            f'python {pyinstaller_path} --onedir --uac-admin --windowed --icon='
+                            + os.path.join("data", "tools", "multibootusb.ico")
+                        )
+                        + ' multibootusb'
+                    ),
+                    shell=True,
+                )
+                == 0
+            ):
+                print('Successfully created one dir distribution package...\nCopying data directory...')
+                shutil.copytree('data', os.path.join('dist', 'multibootusb', 'data'))
+                if os.path.exists(os.path.join('dist', 'multibootusb', 'data')):
+                    print('Data directory successfully copied..')
 
-                        with open("multibootusb.nsi", "rt") as fin:
-                            with open("multibootusb_new.nsi", "wt") as fout:
-                                for line in fin:
-                                    if line.startswith('Name'):
-                                        fout.write('Name \"multibootusb ' + self.version + '\"')
-                                    elif line.startswith('OutFile'):
-                                        fout.write('OutFile \"multibootusb-' + self.version + '-setup.exe\"')
-                                    else:
-                                        fout.write(line)
-                        if subprocess.call(nsis + ' multibootusb_new.nsi', shell=True) == 0:
-                            os.remove('multibootusb_new.nsi')
-                            shutil.copy2('multibootusb-' + self.version + '-setup.exe',
-                                         os.path.join(self.release_upload_dir, "Windows"))
-                            print('Successfully created the setup.exe package...')
+                    with open("multibootusb.nsi", "rt") as fin:
+                        with open("multibootusb_new.nsi", "wt") as fout:
+                            for line in fin:
+                                if line.startswith('Name'):
+                                    fout.write('Name \"multibootusb ' + self.version + '\"')
+                                elif line.startswith('OutFile'):
+                                    fout.write('OutFile \"multibootusb-' + self.version + '-setup.exe\"')
+                                else:
+                                    fout.write(line)
+                    if (
+                        subprocess.call(f'{nsis} multibootusb_new.nsi', shell=True)
+                        == 0
+                    ):
+                        os.remove('multibootusb_new.nsi')
+                        shutil.copy2(
+                            f'multibootusb-{self.version}-setup.exe',
+                            os.path.join(self.release_upload_dir, "Windows"),
+                        )
+                        print('Successfully created the setup.exe package...')
 
         elif self.pkg_name == 'install':
             if subprocess.call("python3", "install.py", shell=True) == 0:
                 print("Installation is successful.")
                 result = True
         elif self.pkg_name == 'src':
-            package = "multibootusb-" + self.version + ".tar.gz"
-            if subprocess.call('python3 setup.py sdist', shell=True) == 0 and \
-                    os.path.exists(os.path.join("dist", "multibootusb-" + self.version + ".tar.gz")):
+            package = f"multibootusb-{self.version}.tar.gz"
+            if subprocess.call(
+                'python3 setup.py sdist', shell=True
+            ) == 0 and os.path.exists(
+                os.path.join("dist", f"multibootusb-{self.version}.tar.gz")
+            ):
                 try:
-                    shutil.copy2(os.path.join("dist", "multibootusb-" + self.version + ".tar.gz"),
-                                          os.path.join(self.release_upload_dir, "Source"), follow_symlinks=False)
+                    shutil.copy2(
+                        os.path.join(
+                            "dist", f"multibootusb-{self.version}.tar.gz"
+                        ),
+                        os.path.join(self.release_upload_dir, "Source"),
+                        follow_symlinks=False,
+                    )
                 except:
                     os.system('cp -rf ' + os.path.join("dist", package) + ' ' + os.path.join(self.release_upload_dir, "Source", package))
                 print("\n\n\nSource package has been created and can be found here::")
-                print((os.path.join("dist", "multibootusb-" + self.version + ".tar.gz\n\n\n")))
+                print(os.path.join("dist", f"multibootusb-{self.version}" + ".tar.gz\n\n\n"))
                 result = True
         elif self.pkg_name == 'run':
             subprocess.call(['python3', 'multibootusb'])
@@ -255,10 +327,10 @@ class pkg():
 
     def upload(self):
         if platform.system() == "Windows":
-                print("You can upload to SF only from Linux as it needs rsync.")
+            print("You can upload to SF only from Linux as it needs rsync.")
         else:
             print("Uploading files...")
-            cmd = "rsync --rsh=ssh -l -p -r -t -z --stats /media/sundar/Data/multibootusb/release/" + self.version + " " + sourceforge_release_path
+            cmd = f"rsync --rsh=ssh -l -p -r -t -z --stats /media/sundar/Data/multibootusb/release/{self.version} {sourceforge_release_path}"
             if os.system(cmd) == 0:
                 print((bcolors.OKGREEN + "\n\nVersion " + self.version + " has been successfully uploaded to SF.\n\n" + bcolors.ENDC))
             else:
@@ -282,7 +354,7 @@ class pkg():
             # print subdirs
             for name in files:
                 if name.endswith('.pyc'):
-                    print(("Cleaning " + os.path.join(path, name)))
+                    print(f"Cleaning {os.path.join(path, name)}")
                     os.chmod(os.path.join(path, name), 0o777)
                     os.unlink(os.path.join(path, name))
                     # os.remove(os.path.join(path,name))
@@ -365,7 +437,7 @@ if __name__ == '__main__':
         if argv == "all":
             all_arug = ["clean", "exe", "deb", "rpm", "suse", "mageia", "src", "setup_exe"]
             for package_name in all_arug:
-                print(("Creating package for argument " + package_name))
+                print(f"Creating package for argument {package_name}")
                 build = pkg(package_name)
                 build.build_package()
         else:

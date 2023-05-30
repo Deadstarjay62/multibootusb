@@ -53,16 +53,14 @@ def load_ctypes_library(name, signatures, error_checkers):
     """
     library_name = find_library(name)
     if not library_name:
-        raise ImportError('No library named %s' % name)
+        raise ImportError(f'No library named {name}')
     lib = CDLL(library_name, use_errno=True)
     # Add function signatures
     for funcname, signature in signatures.items():
-        function = getattr(lib, funcname, None)
-        if function:
+        if function := getattr(lib, funcname, None):
             argtypes, restype = signature
             function.argtypes = argtypes
             function.restype = restype
-            errorchecker = error_checkers.get(funcname)
-            if errorchecker:
+            if errorchecker := error_checkers.get(funcname):
                 function.errcheck = errorchecker
     return lib

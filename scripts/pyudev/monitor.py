@@ -118,11 +118,12 @@ class Monitor(object):
         if source not in ('kernel', 'udev'):
             raise ValueError('Invalid source: {0!r}. Must be one of "udev" '
                              'or "kernel"'.format(source))
-        monitor = context._libudev.udev_monitor_new_from_netlink(
-            context, ensure_byte_string(source))
-        if not monitor:
+        if monitor := context._libudev.udev_monitor_new_from_netlink(
+            context, ensure_byte_string(source)
+        ):
+            return cls(context, monitor)
+        else:
             raise EnvironmentError('Could not create udev monitor')
-        return cls(context, monitor)
 
     @property
     def started(self):

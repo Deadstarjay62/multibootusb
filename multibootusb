@@ -53,11 +53,16 @@ def running_from():
     """
     Print version and path location (installed or source code) info for debugging later.
     """
-    gen.log('Using python version ' + python_version + 'on platform ' + _platform, _print=False)
+    gen.log(
+        f'Using python version {python_version}on platform {_platform}',
+        _print=False,
+    )
     if os.path.exists('scripts'):
-        gen.log('Running multibootusb version ' + gen.mbusb_version() + ' from source...')
+        gen.log(f'Running multibootusb version {gen.mbusb_version()} from source...')
     else:
-        gen.log('Running multibootusb version ' + gen.mbusb_version() + ' from installed system...')
+        gen.log(
+            f'Running multibootusb version {gen.mbusb_version()} from installed system...'
+        )
 
 
 def usage():
@@ -157,10 +162,7 @@ if __name__ == '__main__':
             print_version()
             sys.exit()
         elif opt in ('-i', '--iso'):
-            if ',' not in arg:
-                config.image_path = arg
-            else:
-                config.image_path = arg.split(',')
+            config.image_path = arg if ',' not in arg else arg.split(',')
         elif opt in ('-t', '--target'):
             # Convert to upper if windows drive name is given
             config.usb_disk = len(arg) == 2 and arg[0].isalpha() and arg[1] == ':'\
@@ -191,14 +193,14 @@ def main():
 
     if config.debug is True:
         from scripts.debug import colors
-        log(colors.HEADER + "=== DEBUG ENABLED ===")
+        log(f"{colors.HEADER}=== DEBUG ENABLED ===")
 
 
     if gui is False:
         check_admin()
         if uninstall is True and config.usb_disk != '':
             cli_uninstall_distro()
-        elif uninstall is True and config.usb_disk == '':
+        elif uninstall is True:
             log('\nYou must provide \'-t\' option to point to your USB disk for uninstalling a distro.\n'
                 'See the usage example below.')
             usage()
@@ -228,5 +230,5 @@ if __name__ == '__main__':
     finally:
         from scripts import usb
         for p in config.remounted_partitions:
-            log('Unmouting %s at exit' % p)
+            log(f'Unmouting {p} at exit')
             usb.unmount(p)

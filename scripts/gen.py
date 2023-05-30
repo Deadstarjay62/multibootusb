@@ -29,7 +29,7 @@ def print_version():
     Simple log the version number of the multibootusb application
     :return:
     """
-    log('multibootusb version: ' + mbusb_version())
+    log(f'multibootusb version: {mbusb_version()}')
 
 
 def quote(text):
@@ -38,10 +38,7 @@ def quote(text):
     :param text:    Any word or sentence.
     :return:        Quoted text or sentence. If already quoted the same text is returned.
     """
-    if not is_quoted(text):
-        return '"' + text + '"'
-    else:
-        return text
+    return f'"{text}"' if not is_quoted(text) else text
 
 
 def is_quoted(text):
@@ -114,12 +111,12 @@ def copy_mbusb_dir_usb(usb_disk):
     result = ''
     if not os.path.exists(os.path.join(usb_mount_path, "multibootusb")):
         try:
-            log('Copying multibootusb directory to ' + usb_mount_path)
+            log(f'Copying multibootusb directory to {usb_mount_path}')
             shutil.copytree(resource_path(os.path.join("data", "multibootusb")), os.path.join(usb_mount_path, "multibootusb"))
 
             result = True
         except:
-            log('multibootusb directory could not be copied to ' + usb_mount_path)
+            log(f'multibootusb directory could not be copied to {usb_mount_path}')
             result = False
     else:
         log('multibootusb directory already exists. Not copying.')
@@ -131,7 +128,7 @@ def copy_mbusb_dir_usb(usb_disk):
         if os.path.exists(os.path.join(usb_mount_path, 'EFI')):
             shutil.rmtree(os.path.join(usb_mount_path, 'EFI'))
         try:
-            log('Copying EFI directory to ' + usb_mount_path)
+            log(f'Copying EFI directory to {usb_mount_path}')
             shutil.copytree(resource_path(os.path.join("data", "EFI")), os.path.join(usb_mount_path, "EFI"))
             result = True
         except Exception as e:
@@ -224,12 +221,15 @@ def size_not_enough(iso_link, usb_disk):
         return False
     usb_size = usb_details['size_free']
 
-    return bool(isoSize > usb_size)
+    return isoSize > usb_size
 
 
 def mbusb_version():
-    version = open(resource_path(os.path.join("data", "version.txt")), 'r').read().strip()
-    return version
+    return (
+        open(resource_path(os.path.join("data", "version.txt")), 'r')
+        .read()
+        .strip()
+    )
 
 
 def check_text_in_file(file_path, text):
@@ -241,9 +241,8 @@ def check_text_in_file(file_path, text):
     """
     if not os.path.exists(file_path):
         return False
-    else:
-        with open(file_path) as data_file:
-            return any(text in line for line in data_file)
+    with open(file_path) as data_file:
+        return any(text in line for line in data_file)
 
 
 def prepare_mbusb_host_dir():
@@ -316,10 +315,7 @@ def grub_efi_exist(grub_efi_path):
     from . import iso
     if grub_efi_path is not None:
         sl = list(iso.strings(grub_efi_path))
-        for strin in sl:
-            if re.search(r'multibootusb', strin, re.I):
-                return True
-        return False
+        return any(re.search(r'multibootusb', strin, re.I) for strin in sl)
 
 
 def process_exist(process_name):
@@ -334,15 +330,15 @@ def process_exist(process_name):
         c = wmi.WMI()
         for process in c.Win32_Process():
             if process_name in process.Name:
-                log(process_name + ' exist...')
-                log(str(process.ProcessId) + ' ' + str(process.Name))
+                log(f'{process_name} exist...')
+                log(f'{str(process.ProcessId)} {str(process.Name)}')
                 log("Having Windows explorer won't allow dd.exe to write ISO image properly."
                       "\nKilling the process..")
                 try:
                     os.kill(process.ProcessId, signal.SIGTERM)
                     return True
                 except:
-                    log('Unable to kill process ' + str(process.ProcessId))
+                    log(f'Unable to kill process {str(process.ProcessId)}')
 
     return False
 

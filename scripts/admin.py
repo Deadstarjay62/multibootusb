@@ -63,7 +63,7 @@ def isUserAdmin():
     elif platform.system() == "Linux":
         return os.getuid() == 0
     else:
-        raise RuntimeError("Unsupported operating system for this module: %s" % (os.name,))
+        raise RuntimeError(f"Unsupported operating system for this module: {os.name}")
 
 
 def runAsAdmin(cmdLine=None, wait=True):
@@ -84,52 +84,50 @@ def runAsAdmin(cmdLine=None, wait=True):
 
     #if os.name == 'nt':
     #    raise RuntimeError, "This function is only implemented on Windows."
-    if platform.system() == "Windows":
+    if platform.system() != "Windows":
+        return
+    import win32api
+    import win32con
+    import win32event
+    import win32process
+    from win32com.shell.shell import ShellExecuteEx
+    from win32com.shell import shellcon
 
-        import win32api
-        import win32con
-        import win32event
-        import win32process
-        from win32com.shell.shell import ShellExecuteEx
-        from win32com.shell import shellcon
+    python_exe = sys.executable
 
-        python_exe = sys.executable
-
-        if cmdLine is None:
-            cmdLine = [python_exe] + sys.argv
-        elif type(cmdLine) not in (types.TupleType, types.ListType):
-            raise ValueError("cmdLine is not a sequence.")
-        cmd = '"%s"' % (cmdLine[0],)
+    if cmdLine is None:
+        cmdLine = [python_exe] + sys.argv
+    elif type(cmdLine) not in (types.TupleType, types.ListType):
+        raise ValueError("cmdLine is not a sequence.")
+    cmd = f'"{cmdLine[0]}"'
         # XXX TODO: isn't there a function or something we can call to massage command line params?
-        params = " ".join(['"%s"' % (x,) for x in cmdLine[1:]])
+    params = " ".join([f'"{x}"' for x in cmdLine[1:]])
 #         cmdDir = ''
-        showCmd = win32con.SW_SHOWNORMAL
-        #showCmd = win32con.SW_HIDE
-        lpVerb = 'runas'  # causes UAC elevation prompt.
+    showCmd = win32con.SW_SHOWNORMAL
+    #showCmd = win32con.SW_HIDE
+    lpVerb = 'runas'  # causes UAC elevation prompt.
 
-        #gen.log("Running", cmd, params)
+    #gen.log("Running", cmd, params)
 
-        # ShellExecute() doesn't seem to allow us to fetch the PID or handle
-        # of the process, so we can't get anything useful from it. Therefore
-        # the more complex ShellExecuteEx() must be used.
+    # ShellExecute() doesn't seem to allow us to fetch the PID or handle
+    # of the process, so we can't get anything useful from it. Therefore
+    # the more complex ShellExecuteEx() must be used.
 
-        # procHandle = win32api.ShellExecute(0, lpVerb, cmd, params, cmdDir, showCmd)
+    # procHandle = win32api.ShellExecute(0, lpVerb, cmd, params, cmdDir, showCmd)
 
-        procInfo = ShellExecuteEx(nShow=showCmd,
-                                  fMask=shellcon.SEE_MASK_NOCLOSEPROCESS,
-                                  lpVerb=lpVerb,
-                                  lpFile=cmd,
-                                  lpParameters=params)
+    procInfo = ShellExecuteEx(nShow=showCmd,
+                              fMask=shellcon.SEE_MASK_NOCLOSEPROCESS,
+                              lpVerb=lpVerb,
+                              lpFile=cmd,
+                              lpParameters=params)
 
-        if wait:
-            procHandle = procInfo['hProcess']
-            obj = win32event.WaitForSingleObject(procHandle, win32event.INFINITE)
-            rc = win32process.GetExitCodeProcess(procHandle)
-            #gen.log "Process handle %s returned code %s" % (procHandle, rc)
-        else:
-            rc = None
-
-        return rc
+    if wait:
+        procHandle = procInfo['hProcess']
+        obj = win32event.WaitForSingleObject(procHandle, win32event.INFINITE)
+        return win32process.GetExitCodeProcess(procHandle)
+                #gen.log "Process handle %s returned code %s" % (procHandle, rc)
+    else:
+        return None
 
 
 def adminCmd(cmd, fork=False, gui=False):
@@ -143,31 +141,29 @@ def adminCmd(cmd, fork=False, gui=False):
     sudo_cmd = ''
     if os.getuid() == 0:
         sudo_cmd = cmd
+    elif os.system('which pkexec') == 0:
+        if gui:
+            # By default, pkexec disallows X11 apps. Restore DISPLAY & XAUTHORITY
+            # to allow it. man 1 pkexec/"SECURITY NOTES" section
+            cmd = ['export DISPLAY=$DISPLAY; export XAUTHORITY=$XAUTHORITY; '] + cmd
+        sudo_cmd = ['pkexec', '/bin/sh', '-c']
+    elif os.system('which gksudo') == 0:
+        sudo_cmd = ["gksudo", "--", "/bin/sh", "-c"]
+    elif os.system('which gksu') == 0:
+        sudo_cmd = ["gksu"]
+    elif os.system('which kdesudo') == 0:
+        sudo_cmd = ["kdesudo", "-t", "-c"]    # http://www.unix.com/man-page/debian/1/kdesudo/
+    elif os.system('which kdesu') == 0:
+        sudo_cmd = ["kdesu", "-t", "-c"]      # http://linux.die.net/man/1/kdesu
     else:
-        if os.system('which pkexec') == 0:
-            if gui:
-                # By default, pkexec disallows X11 apps. Restore DISPLAY & XAUTHORITY
-                # to allow it. man 1 pkexec/"SECURITY NOTES" section
-                cmd = ['export DISPLAY=$DISPLAY; export XAUTHORITY=$XAUTHORITY; '] + cmd
-            sudo_cmd = ['pkexec', '/bin/sh', '-c']
-        elif os.system('which gksudo') == 0:
-            sudo_cmd = ["gksudo", "--", "/bin/sh", "-c"]
-        elif os.system('which gksu') == 0:
-            sudo_cmd = ["gksu"]
-        elif os.system('which kdesudo') == 0:
-            sudo_cmd = ["kdesudo", "-t", "-c"]    # http://www.unix.com/man-page/debian/1/kdesudo/
-        elif os.system('which kdesu') == 0:
-            sudo_cmd = ["kdesu", "-t", "-c"]      # http://linux.die.net/man/1/kdesu
-        else:
-            QtWidgets.QMessageBox.information('No root...',
-                                          'Could not find any of: pkexec, sudo, gksu, kdesu, gksudo, or kdesudo.\n'
-                                          'Please install one then restart multibootusb.')
-            sys.exit(0)
+        QtWidgets.QMessageBox.information('No root...',
+                                      'Could not find any of: pkexec, sudo, gksu, kdesu, gksudo, or kdesudo.\n'
+                                      'Please install one then restart multibootusb.')
+        sys.exit(0)
     final_cmd = ' '.join(sudo_cmd + ['"' + ' '.join(cmd).replace('"', '\\"') + '"'])
-    gen.log("Executing ==>  " + final_cmd)
+    gen.log(f"Executing ==>  {final_cmd}")
     if fork:
         return subprocess.Popen(final_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, shell=True)
-    else:
-        ret = subprocess.call(final_cmd, shell=True)
-        gen.log("Process returned ==>   " + str(ret))
-        return ret
+    ret = subprocess.call(final_cmd, shell=True)
+    gen.log(f"Process returned ==>   {str(ret)}")
+    return ret

@@ -58,6 +58,7 @@ def distro(iso_cfg_ext_dir, iso_link, expose_exception=False):
     def run_file_exists(filename_sought, filename, file_content, iso_filelist,
                         isolinux_bin_exists):
         return filename_sought in iso_filelist
+
     def file_exists(filename_sought):
         return partial(run_file_exists, filename_sought)
 
@@ -72,6 +73,7 @@ def distro(iso_cfg_ext_dir, iso_link, expose_exception=False):
                 iso_filelist, isolinux_bin_exists):
         return not predicate(filename, file_content, iso_filelist,
                              isolinux_bin_exists)
+
     def not_(predicate):
         return partial(run_not, predicate)
 
@@ -149,7 +151,7 @@ def distro(iso_cfg_ext_dir, iso_link, expose_exception=False):
 
     # I'm not sure if this platform check is necessary but I will
     # avoid removal to not alter the behaviour.
-    if platform.system() == "Linux" or platform.system() == "Windows":
+    if platform.system() in ["Linux", "Windows"]:
         for path, subdirs, files in os.walk(iso_cfg_ext_dir):
             for name in files:
                 name_lower = name.lower()
@@ -166,7 +168,7 @@ def distro(iso_cfg_ext_dir, iso_link, expose_exception=False):
                     string = open(os.path.join(path, name),
                                   errors='ignore').read()
                 except IOError:
-                    log("Read Error on %s." % name)
+                    log(f"Read Error on {name}.")
                     continue
 
                 for distro_, predicate in test_vector:
@@ -212,12 +214,8 @@ def detect_iso_from_file_list(iso_file_list):
 
     filenames = [f.lower() for f in iso_file_list]
     for keys, distro in keys_to_distro:
-        match = True
-        for k in keys:
-            if all(k not in fn for fn in filenames):
-                match = False
-                break
-        if match is True:
+        match = not any(all(k not in fn for fn in filenames) for k in keys)
+        if match:
             return distro
     #log("Examined %d %s in the iso but could not determine the distro."
     #  % (len(filenames), len(filenames)==1 and 'filename' or 'filenames'))
@@ -235,7 +233,7 @@ def perform_strict_detections(iso_cfg_ext_dir, iso_file_list):
                 data = f.read().lower()
                 return keyword in data
         except (IOError, OSError):
-            log("Failed to open %s" % fullpath)
+            log(f"Failed to open {fullpath}")
             return False
 
     def contains(relataive_filepath, keyword):

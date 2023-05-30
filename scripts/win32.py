@@ -34,12 +34,11 @@ def FindNextVolume(hSearch):
     volume_name = ctypes.create_unicode_buffer(" " * 255)
     if kernel32.FindNextVolumeW(hSearch, volume_name, 255) != 0:
         return volume_name.value
-    else:
-        errno = ctypes.GetLastError()
-        if errno == winerror.ERROR_NO_MORE_FILES:
-            FindVolumeClose(hSearch)
-            return None
-        raise RuntimeError("FindNextVolume failed (%s)" % errno)
+    errno = ctypes.GetLastError()
+    if errno == winerror.ERROR_NO_MORE_FILES:
+        FindVolumeClose(hSearch)
+        return None
+    raise RuntimeError(f"FindNextVolume failed ({errno})")
 
 def FindVolumeClose(hSearch):
     """Close a search handle opened by FindFirstVolume, typically
@@ -53,8 +52,8 @@ def findAvailableDrives():
             win32api.GetLogicalDriveStrings().rstrip('\0').split('\0')]
 
 def findNewDriveLetter(used_letters):
-    all_letters = set([chr(i) for i in range(ord('C'), ord('Z')+1)])
-    return min(list(all_letters - set([s[0] for s in used_letters])))
+    all_letters = {chr(i) for i in range(ord('C'), ord('Z')+1)}
+    return min(list(all_letters - {s[0] for s in used_letters}))
 
 def _openHandle(path, bWriteAccess, bWriteShare,
                 logfunc = lambda s: None):
@@ -69,16 +68,17 @@ def _openHandle(path, bWriteAccess, bWriteShare,
                 path, access_flag, share_flag, None,
                 win32con.OPEN_EXISTING, win32con.FILE_ATTRIBUTE_NORMAL, None)
             nth = { 0: 'first', 1:'second', 2:'third'}
-            logfunc("Opening [%s]: success at the %s iteration" %
-                    (path, nth.get(retry_count, '%sth' % (retry_count+1))))
+            logfunc(
+                f"Opening [{path}]: success at the {nth.get(retry_count, f'{retry_count + 1}th')} iteration"
+            )
             return handle
         except pywintypes.error as e:
-            logfunc('Exception=>'+str(e))
+            logfunc(f'Exception=>{str(e)}')
             if NUM_RETRIES/3 < retry_count:
                 bWriteShare = True
         time.sleep(TIMEOUT / float(NUM_RETRIES))
     else:
-        raise RuntimeError("Couldn't open handle for %s." % path)
+        raise RuntimeError(f"Couldn't open handle for {path}.")
 
 def _closeHandle(h):
     x = win32file.CloseHandle(h)
@@ -109,7 +109,7 @@ class openHandle:
     def LockPhysicalDrive(self):
         self.assert_physical_drive()
         lockPhysicalDrive(self.h, self.logfunc)
-        self.logfunc("Successfully locked '%s'" % self.path)
+        self.logfunc(f"Successfully locked '{self.path}'")
 
 
     def ReadFile(self, size):
@@ -134,13 +134,13 @@ class openHandle:
         self.assert_physical_drive()
         # Implementation borrowed from rufus: https://github.com/pbatard/rufus
         num_sectors_to_clear \
-            = (add1MB and 2048 or 0) + self.MAX_SECTORS_TO_CLEAR
+                = (add1MB and 2048 or 0) + self.MAX_SECTORS_TO_CLEAR
         zeroBuf = b'\0' * sector_size
-        for i in range(num_sectors_to_clear):
+        for _ in range(num_sectors_to_clear):
             self.WriteFile(zeroBuf)
         offset = disk_size - self.MAX_SECTORS_TO_CLEAR * sector_size
         win32file.SetFilePointer(self.h, offset, win32con.FILE_BEGIN)
-        for i in range(num_sectors_to_clear):
+        for _ in range(num_sectors_to_clear):
             self.WriteFile(zeroBuf)
         # We need to append paddings as CREATE_DISK structure contains a union.
         param = struct.pack('<IIIHH8s',
@@ -172,7 +172,7 @@ def lockPhysicalDrive(handle, logfunc=lambda s: None):
             None, 0, None)
     except pywintypes.error as e:
         logfunc('IO boundary checks diabled.')
-    for retry in range(20):
+    for _ in range(20):
         try:
             win32file.DeviceIoControl(handle, winioctlcon.FSCTL_LOCK_VOLUME,
                                       None, 0, None)
@@ -222,20 +222,20 @@ def findVolumeGuids():
 
 def ZapPhysicalDrive(target_drive, get_volume_info_func, log_func):
     with openHandle('\\\\.\\PhysicalDrive%d' % target_drive, True, False,
-                    lambda s:sys.stdout.write(s+'\n')) as hDrive:
+                        lambda s:sys.stdout.write(s+'\n')) as hDrive:
         hDrive.LockPhysicalDrive()
         geom = hDrive.DiskGeometory()
         for v in get_volume_info_func(target_drive):
             volume_path = '\\\\.\\'+v.DeviceID
-            log_func('Dismounting volume ' + volume_path)
+            log_func(f'Dismounting volume {volume_path}')
             with openHandle(volume_path, False, False) as h:
                 x = win32file.DeviceIoControl(
                     h.h, winioctlcon.FSCTL_DISMOUNT_VOLUME, None, None)
-                print ('FSCTL_DISMOUNT_VOLUME=>%s' % x)
+                print(f'FSCTL_DISMOUNT_VOLUME=>{x}')
             x = win32file.DeleteVolumeMountPoint(volume_path+'\\')
-            log_func('DeleteVolumeMountPoint=>%s' % x)
+            log_func(f'DeleteVolumeMountPoint=>{x}')
         else:
-            log_func('No volumes on %s' % target_drive)
+            log_func(f'No volumes on {target_drive}')
 
         add1MB = False
         hDrive.ZapMBRGPT(geom.disk_size, geom.bytes_per_sector, add1MB)

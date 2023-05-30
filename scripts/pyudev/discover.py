@@ -142,10 +142,7 @@ class DeviceNumberHypothesis(Hypothesis):
            r'^(?P<major>\d+)(\D+)(?P<minor>\d+)$'
         )
         match = major_minor_re.match(value)
-        return match and os.makedev(
-           int(match.group('major')),
-           int(match.group('minor'))
-        )
+        return match and os.makedev(int(match['major']), int(match['minor']))
 
     @classmethod
     def _match_number(cls, value):
@@ -158,7 +155,7 @@ class DeviceNumberHypothesis(Hypothesis):
         """
         number_re = re.compile(r'^(?P<number>\d+)$')
         match = number_re.match(value)
-        return match and int(match.group('number'))
+        return match and int(match['number'])
 
     @classmethod
     def match(cls, value):
@@ -309,7 +306,7 @@ class DeviceFileHypothesis(Hypothesis):
         devices = context.list_devices()
         devices_with_links = (d for d in devices if list(d.device_links))
         links = (l for d in devices_with_links for l in d.device_links)
-        return sorted(set(os.path.dirname(l) for l in links))
+        return sorted({os.path.dirname(l) for l in links})
 
     @classmethod
     def setup(cls, context):

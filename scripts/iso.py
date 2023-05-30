@@ -53,7 +53,7 @@ def isolinux_bin_exist(iso_link):
     """
     if os.path.exists(iso_link):
         iso_file_list = _7zip.list_iso(iso_link)
-        return bool(any("isolinux.bin" in s.lower() for s in iso_file_list))
+        return any(("isolinux.bin" in s.lower() for s in iso_file_list))
 
 
 def iso_size(iso_link):
@@ -115,14 +115,8 @@ def iso_menu_lst_path(iso_link):
     Detects pat to "menu.lst" of grub4dos.
     :return: path of "menu.lst" as a string.
     """
-    menu_lst_path = False
     iso_file_list = _7zip.list_iso(iso_link)
-    for f in iso_file_list:
-        if 'menu.lst' in f.lower():
-            menu_lst_path = f
-            break
-
-    return menu_lst_path
+    return next((f for f in iso_file_list if 'menu.lst' in f.lower()), False)
 
 
 def integrity(iso_link):
@@ -147,13 +141,13 @@ def isolinux_version(isolinux_bin_path):
     :param isolinux_path: Path to "isolinux.bin"
     :return: Version number as string.
     """
-    version = ["2", "3", "4", "5", "6"]
     if isolinux_bin_path is not None:
         sl = list(strings(isolinux_bin_path))
+        version = ["2", "3", "4", "5", "6"]
         for strin in sl:
             if re.search(r'isolinux ', strin, re.I):
                 for number in version:
-                    if re.search(r'isolinux ' + number, strin, re.I):
+                    if re.search(f'isolinux {number}', strin, re.I):
                         log("\nFound syslinux version " + number + "\n")
                         return str(number)
 
@@ -178,7 +172,7 @@ def extract_cfg_file(iso_link):
     _pattern = ['.cfg', '.txt', 'isolinux.bin', '.lst']
     # file_list = iso_file_list(iso_link)
     for ext in _pattern:
-        _7zip.extract_iso(iso_link, _iso_cfg_ext_dir, pattern='*' + ext)
+        _7zip.extract_iso(iso_link, _iso_cfg_ext_dir, pattern=f'*{ext}')
 
 
 def iso_extract_full(iso_link, dest_dir):
@@ -200,14 +194,8 @@ def iso_file_path(iso_link, file_name):
     assert iso_link
     assert file_name
 
-    file_path = False
     iso_file_list = _7zip.list_iso(iso_link)
-    for f in iso_file_list:
-        if file_name in f.lower():
-            file_path = f
-            break
-
-    return file_path
+    return next((f for f in iso_file_list if file_name in f.lower()), False)
 
 def get_file_list(iso_link, predicate):
     # Note that unlike iso_file_path(), only the basename is checked.
@@ -220,8 +208,7 @@ if __name__ == '__main__':
     log('iso_name(iso_path) : ', iso_name(iso_path))
     log('iso_basename(iso_path) : ', iso_basename(iso_path))
     log('Integrity of ISO is : ', integrity(iso_path))
-    f_list = (iso_file_list(iso_path))
-    if f_list:
+    if f_list := (iso_file_list(iso_path)):
         for f in f_list:
             log(f)
     log('isolinux_bin_exist(iso_path) : ', isolinux_bin_exist(iso_path))

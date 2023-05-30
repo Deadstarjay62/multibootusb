@@ -122,7 +122,7 @@ class ISO9660:
             try:
                 self.isoFile.seek(BLOCK_SIZE*(15+desc_nr))
                 volume_dsc = self.isoFile.read(BLOCK_SIZE)
-                flag = struct.unpack('B',volume_dsc[0:1])[0]
+                flag = struct.unpack('B', volume_dsc[:1])[0]
                 if flag == 1:
                     self.__readPrimaryVolume__(volume_dsc)
                     continue
@@ -190,7 +190,7 @@ class ISO9660:
                     break
                 entry_buf = entry_buf[len_entry:]
 
-                sig1 = struct.unpack("B", entry_buf[0:1])[0]
+                sig1 = struct.unpack("B", entry_buf[:1])[0]
                 sig2 = struct.unpack("B", entry_buf[1:2])[0]
                 len_entry = struct.unpack("B", entry_buf[2:3])[0]
                 ver = struct.unpack("B", entry_buf[3:4])[0]
@@ -222,7 +222,7 @@ class ISO9660:
                         rr.altname += "."
                     elif flag == 0x04:   # FLAG_PARENT
                         rr.altname += ".."
-                    elif flag == 0x01 or flag ==0:  # 1:FLAG_CONTINUE
+                    elif flag in [0x01, 0]:  # 1:FLAG_CONTINUE
                         rr.altname += entry_buf[5:len_entry].decode()
                     continue
 
@@ -248,16 +248,13 @@ class ISO9660:
                 if sig1 == ord('S') and sig2 == ord('T'):
                     return rr
 
-                #gen.log "\n"
-            # while (True) end #
-
-            if ce_len > 0:
-                #gen.log " Read CE block, (%d, %d, %d)"%(ce_blk, ce_len, ce_off)
-                self.isoFile.seek(ce_blk*BLOCK_SIZE + ce_off)
-                entry_buf = self.isoFile.read(ce_len)
-                len_buf = ce_len
-            else:
+                        #gen.log "\n"
+            if ce_len <= 0:
                 break
+            #gen.log " Read CE block, (%d, %d, %d)"%(ce_blk, ce_len, ce_off)
+            self.isoFile.seek(ce_blk*BLOCK_SIZE + ce_off)
+            entry_buf = self.isoFile.read(ce_len)
+            len_buf = ce_len
         # while (True) end #
         return rr
 
@@ -277,17 +274,10 @@ class ISO9660:
         """
         self.isoFile.seek(0x01FE)
         h = self.isoFile.read(2)
-        s1 = struct.unpack('B', h[0:1])[0]
+        s1 = struct.unpack('B', h[:1])[0]
         s2 = struct.unpack('B', h[1:2])[0]
 
-        #gen.log "-->(0x%x,0x%x)" %(s1, s2)
-
-        if (s1 == 0x55) and (s2 == 0xAA):
-            result = True   # "Bootable"
-        else:
-            result = False  # "Not bootable"
-
-        return result
+        return s1 == 0x55 and s2 == 0xAA
 
     def searchDir(self, path):
         # /root/abc/ - ['', 'root', 'abc', '']
@@ -299,8 +289,8 @@ class ISO9660:
         if dircomps == []:
             return
 
-        if self.priVol == None:
-           return
+        if self.priVol is None:
+            return
 
         if len(dircomps) == 1:
             return self.rootDir
@@ -325,7 +315,7 @@ class ISO9660:
                 else:
                     return item
             else:
-                gen.log("can't find " + dircomps[i_dircomp])
+                gen.log(f"can't find {dircomps[i_dircomp]}")
                 return None
 
     def readDirrecord(self, desc_buf):
@@ -334,7 +324,7 @@ class ISO9660:
         """
         dirRec = DirRecord()
         try:
-            dirRec.lenDr = struct.unpack("B", desc_buf[0:1])[0]
+            dirRec.lenDr = struct.unpack("B", desc_buf[:1])[0]
             if dirRec.lenDr == 0:
                 return None
         except:
@@ -359,7 +349,7 @@ class ISO9660:
             dirRec.fIdentifier = desc_buf[33:33+dirRec.lenFi].decode()
             idx = dirRec.fIdentifier.rfind(";")
             if idx != -1:
-                dirRec.fIdentifier = dirRec.fIdentifier[0:idx]
+                dirRec.fIdentifier = dirRec.fIdentifier[:idx]
 
         dirRec.suspBuf = ""
         dirRec.sysUseStar = 34 + dirRec.lenFi -1
@@ -395,10 +385,10 @@ class ISO9660:
         while i_blk < total_blk:
             self.isoFile.seek((block_nr+i_blk)*BLOCK_SIZE)
             desc_buf = self.isoFile.read(BLOCK_SIZE)
-            i_blk = i_blk + 1
+            i_blk += 1
             while True:
                 dirItem = self.readDirrecord(desc_buf)
-                if dirItem == None:
+                if dirItem is None:
                     break
 
                 dirs.append(dirItem)
@@ -410,8 +400,8 @@ class ISO9660:
 
     def readPathtableL(self):
         """ Read path table of L typde """
-        if self.priVol == None:
-           return
+        if self.priVol is None:
+            return
         block_nr = self.priVol.ptLRd
         total = self.priVol.ptSize
 
@@ -420,21 +410,17 @@ class ISO9660:
         ptbuf = self.isoFile.read((BLOCK_SIZE * ((total+BLOCK_SIZE-1)//BLOCK_SIZE)))
         i = 0
         r_size = 0
-        while True :
+        while True:
             i = i+1
             t = PathTabelItem()
 
-            t.lenDi = struct.unpack('B', ptbuf[0:1])[0]
+            t.lenDi = struct.unpack('B', ptbuf[:1])[0]
             t.lenEattr = struct.unpack('B', ptbuf[1:2])[0]
             t.locExtent = struct.unpack('<L', ptbuf[2:6])[0]
             t.pdirNr = struct.unpack('<H', ptbuf[6:8])[0]
             t.fIdentifier = ptbuf[8:8+t.lenDi].decode()
             path_table.append(t)
-            if t.lenDi % 2 :
-                len_pd = 1
-            else:
-                len_pd = 0
-
+            len_pd = 1 if t.lenDi % 2 else 0
             r_size += 9+t.lenDi-1+len_pd
             if r_size >= total:
                 break
@@ -454,48 +440,42 @@ class ISO9660:
         Return 0 means success otherwise failure.
         """
         d = self.searchDir(path)
-        if d != None:
-            if output.endswith("/"):
-                output = output[0:-1]
-            # Try to make target directory.
-            if not os.path.exists(output):
-                try:
-                    os.makedirs(output)
-                except(OSError):
-                    sys.stderr.write("can't make dirs({0})\n".format(output))
-                    return E_FAILURE
-            pp = None
-            if pattern != "":
-                p = r'{0}'.format(pattern)
-                pp = re.compile(p)
-            #gen.log "writeDir: flag(%x)"%(d.fFlag)
-            if d.fFlag & 0x02 == 0x02:
-                # Check if a clean directory.
-                #try:
-                #    if len(os.listdir(output)) > 0:
-                #        sys.stderr.write("The target directory is not empty\n")
-                #        return E_FAILURE
-                #except(OSError):
-                #    sys.stderr.write("can't access dirs({0})\n".format(p))
-                #    return E_FAILURE
-                self.writeDir_r(output, d, pp, r, all_type)
-                return E_SUCCESS
-            else:
-                return self.writeFile(d, output+path, all_type)
-        else:
+        if d is None:
             return E_FAILURE
+        if output.endswith("/"):
+            output = output[:-1]
+        # Try to make target directory.
+        if not os.path.exists(output):
+            try:
+                os.makedirs(output)
+            except(OSError):
+                sys.stderr.write("can't make dirs({0})\n".format(output))
+                return E_FAILURE
+        pp = None
+        if pattern != "":
+            p = r'{0}'.format(pattern)
+            pp = re.compile(p)
+        if d.fFlag & 0x02 != 0x02:
+            return self.writeFile(d, output+path, all_type)
+        # Check if a clean directory.
+        #try:
+        #    if len(os.listdir(output)) > 0:
+        #        sys.stderr.write("The target directory is not empty\n")
+        #        return E_FAILURE
+        #except(OSError):
+        #    sys.stderr.write("can't access dirs({0})\n".format(p))
+        #    return E_FAILURE
+        self.writeDir_r(output, d, pp, r, all_type)
+        return E_SUCCESS
 
     def writeDir_r(self, det_dir, dire, pp, r, all_type):
         #gen.log "writeDir_r:(%s)"%(det_dir)
         dirs = self.readDirItems(dire.locExtent, dire.lenData)
         for d in dirs:
-            if not d.fIdentifier in [".", ".."]:
-                if (pp != None) and (pp.search(d.fIdentifier) == None):
-                    match = False
-                else:
-                    match = True
+            if d.fIdentifier not in [".", ".."]:
+                match = pp is None or pp.search(d.fIdentifier) is not None
                 #gen.log "mathing %s, %s, (%x)"%(match, d.fIdentifier, d.fFlag)
-                p = det_dir + "/" + d.fIdentifier
+                p = f"{det_dir}/{d.fIdentifier}"
                 if d.fFlag & 0x02 == 0x02:
                     if not os.path.exists(p):
                         os.makedirs(p, 0o777)
@@ -514,7 +494,7 @@ class ISO9660:
         Return 0 means success otherwise failure.
         """
         global file_out
-        if detFile == "" or dirRec == None:
+        if detFile == "" or dirRec is None:
             sys.stderr.write("can't write file\n")
             return E_FAILURE
 
@@ -586,9 +566,9 @@ class ISO9660:
             if (d.fFlag & 0x02) == 0x02:
                 #gen.log "readDir (%x, %x)"%(d.locExtent, d.lenData)
                 if dir_path.endswith("/"):
-                    dir_path = dir_path[0:-1]
+                    dir_path = dir_path[:-1]
                 self.readDir_r(file_list, dir_path, d, r)
-            # if (d.fFlag & 0x02) == 0x02: #
+                # if (d.fFlag & 0x02) == 0x02: #
         # if d != None:
         return file_list
 
@@ -597,8 +577,8 @@ class ISO9660:
             return
         dirs = self.readDirItems(dire.locExtent, dire.lenData)
         for d in dirs:
-            if not d.fIdentifier in [".", ".."]:
-                p = dir_path + "/" + d.fIdentifier
+            if d.fIdentifier not in [".", ".."]:
+                p = f"{dir_path}/{d.fIdentifier}"
                 file_list.append(p)
                 if r:
                     self.readDir_r(file_list, p, d, r)
@@ -606,7 +586,7 @@ class ISO9660:
         # for d in dirs: #
 
     def checkIntegrity(self):
-        if self.priVol == None: # no primary volume
+        if self.priVol is None: # no primary volume
             return False
 
         if self.priVol.ptSize == 0: # empty ?
@@ -632,10 +612,7 @@ class ISO9660:
                             self.isoFile.seek(0, os.SEEK_END)
                             iso_end = self.isoFile.tell()
                             #gen.log("%d-->%d")%(lastfile_end, iso_end)
-                            if iso_end >= lastfile_end:
-                                return True
-                            else:
-                                return False
+                            return iso_end >= lastfile_end
                         except(IOError):
                             #gen.log "exception when seek. iso is broken"
                             return False
@@ -676,13 +653,13 @@ local:(%d)->(0x%x), parent dir number:(%d), identify:(%s)\n" \
 def dump_primary_volume(privol=None):
     """ Dump primary volume descriptor """
 
-    if privol == None:
+    if privol is None:
         gen.log("Can't dump, maybe iso is broken")
         return
     gen.log("===== Dump primary volume descriptor ==")
 
-    gen.log("System Identifier:(%s)" %(privol.sysIdentifier.decode()))
-    gen.log("Volume Identifier:(%s)" %privol.volIdentifier.decode())
+    gen.log(f"System Identifier:({privol.sysIdentifier.decode()})")
+    gen.log(f"Volume Identifier:({privol.volIdentifier.decode()})")
     gen.log("Volume Space size:(0x%x)BLOCKS(2kB)" %privol.volSize)
     gen.log("Volume sequence number:(%d)" %(privol.volSeq))
     gen.log("logic block size:(0x%x)" %(privol.blockSize))
@@ -699,16 +676,16 @@ def dump_boot_record(volume_dsc):
 
     gen.log("===== Dump boot record ==")
     std_identifier = volume_dsc[1:6]
-    gen.log("Standard Identifier:(%s)" %std_identifier)
+    gen.log(f"Standard Identifier:({std_identifier})")
 
     vol_ver = struct.unpack('B', volume_dsc[6])
     gen.log("Volume descriptor version:(%d)" %vol_ver)
 
     bootsys_identifier = volume_dsc[7:39]
-    gen.log("boot system identifier(%s)" %bootsys_identifier)
+    gen.log(f"boot system identifier({bootsys_identifier})")
 
     boot_identifier = volume_dsc[39:71]
-    gen.log("boot identifier(%s)" %boot_identifier)
+    gen.log(f"boot identifier({boot_identifier})")
 
 def usage():
     """ Prompt user how to use   """
@@ -758,14 +735,14 @@ if __name__ == '__main__':
 
     dump_what = argv[1]
 
-    if dump_what == "primary-volume":
-        dump_primary_volume(iso9660fs.priVol)
-    elif dump_what == "pathtable":
+    if dump_what == "pathtable":
         path_table = iso9660fs.readPathtableL()
         dump_pathtable_L(path_table)
+    elif dump_what == "primary-volume":
+        dump_primary_volume(iso9660fs.priVol)
     if dump_what == "dir-record":
         if len(argv) == 5:
-            gen.log("dump dir-record (%s, %s)"%(argv[2], argv[3]))
+            gen.log(f"dump dir-record ({argv[2]}, {argv[3]})")
             dirs = iso9660fs.readDirItems(int(argv[2]), int(argv[3]))
             dump_dir_record(dirs)
         else:
@@ -796,13 +773,13 @@ if __name__ == '__main__':
 
         isodir = dump_what[4:]
         if o_path == "":
-            gen.log("dump_dir(%s)"%(isodir))
+            gen.log(f"dump_dir({isodir})")
             filelist = iso9660fs.readDir(isodir, r)
             if filelist == []:
-                gen.log("can't read any file from (%s)"%(isodir))
+                gen.log(f"can't read any file from ({isodir})")
             else:
                 for f in filelist:
                     gen.log(f)
         else:
-            gen.log("writeDir(%s)->(%s) with pattern(%s)"%(isodir, o_path, pattern))
+            gen.log(f"writeDir({isodir})->({o_path}) with pattern({pattern})")
             sys.exit(iso9660fs.writeDir(isodir, o_path, pattern, r, True))

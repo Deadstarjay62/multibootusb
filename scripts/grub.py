@@ -66,11 +66,11 @@ def mbusb_update_grub_cfg():
             # We could 'break' here but will let the iteration continue
             # in order to lower the chance of keeping latent bugs.
 
-    if config.distro == 'mageialive' and 1<len(candidates):
+    if config.distro == 'mageialive' and len(candidates) > 1:
         grub_cfg_path = candidates[1].replace('\\', '/')
-    elif 0<len(candidates):
+    elif len(candidates) > 0:
         grub_cfg_path = candidates[0].replace('\\', '/')
-    else :
+    else:
         # No suitable grub configuration file is provided by distro.
         # Lets convert syslinux config files to grub2 accepted file format.
         new_loopback_here = 'loopback.cfg'
@@ -88,41 +88,127 @@ def mbusb_update_grub_cfg():
             grub_cfg_path = new_loopback_here.replace('\\', '/')
         #elif bootx_64_cfg is not False:
         #    grub_cfg_path = bootx_64_cfg.replace('\\', '/')
-    gen.log("Using %s to boot this distro." % grub_cfg_path)
+    gen.log(f"Using {grub_cfg_path} to boot this distro.")
 
     if os.path.exists(mbus_grub_cfg_path):
         gen.log('Updating grub.cfg file...')
         if grub_custom_menu(mbus_grub_cfg_path, config.distro) is False:
             with open(mbus_grub_cfg_path, 'a') as f:
-                f.write("#start " + iso.iso_basename(config.image_path) + "\n")
+                f.write(f"#start {iso.iso_basename(config.image_path)}" + "\n")
                 if grub_cfg_path is not None:
-                    if  config.distro == 'grub2only':
-                        f.write('     menuentry ' + iso.iso_basename(config.image_path) + ' {configfile '
-                                + '/' + grub_cfg_path.replace('\\', '/') + '}' + "\n")
+                    if config.distro == 'grub2only':
+                        f.write(
+                            (
+                                (
+                                    (
+                                        f'     menuentry {iso.iso_basename(config.image_path)}'
+                                        + ' {configfile '
+                                        + '/'
+                                    )
+                                    + grub_cfg_path.replace('\\', '/')
+                                    + '}'
+                                )
+                                + "\n"
+                            )
+                        )
                     else:
-                        f.write('     menuentry ' + iso.iso_basename(config.image_path) + ' {configfile '
-                                + '/multibootusb/' + iso.iso_basename(config.image_path) + '/' + grub_cfg_path + '}' + "\n")
+                        f.write(
+                            (
+                                (
+                                    (
+                                        (
+                                            (
+                                                f'     menuentry {iso.iso_basename(config.image_path)}'
+                                                + ' {configfile '
+                                                + '/multibootusb/'
+                                            )
+                                            + iso.iso_basename(
+                                                config.image_path
+                                            )
+                                            + '/'
+                                        )
+                                        + grub_cfg_path
+                                    )
+                                    + '}'
+                                )
+                                + "\n"
+                            )
+                        )
                 elif config.distro == 'f4ubcd':
-                    f.write('     menuentry ' + iso.iso_basename(config.image_path) +
-                            ' {linux /multibootusb/grub.exe --config-file=/multibootusb' +
-                            iso.iso_basename(config.image_path) + '/menu.lst}'"\n")
+                    f.write(
+                        (
+                            (
+                                f'     menuentry {iso.iso_basename(config.image_path)}'
+                                + ' {linux /multibootusb/grub.exe --config-file=/multibootusb'
+                            )
+                            + iso.iso_basename(config.image_path)
+                            + '/menu.lst}'
+                            "\n"
+                        )
+                    )
                 elif config.distro == 'pc-unlocker':
-                    f.write('     menuentry ' + iso.iso_basename(config.image_path) +
-                            ' {\n    linux /ldntldr\n    ntldr /ntldr }' + "\n")
+                    f.write(
+                        (
+                            (
+                                f'     menuentry {iso.iso_basename(config.image_path)}'
+                                + ' {\n    linux /ldntldr\n    ntldr /ntldr }'
+                            )
+                            + "\n"
+                        )
+                    )
                 elif config.distro == 'ReactOS':
-                    f.write('     menuentry ' + iso.iso_basename(config.image_path) +
-                            ' {multiboot /loader/setupldr.sys}' + "\n")
+                    f.write(
+                        (
+                            (
+                                f'     menuentry {iso.iso_basename(config.image_path)}'
+                                + ' {multiboot /loader/setupldr.sys}'
+                            )
+                            + "\n"
+                        )
+                    )
                 elif config.distro == 'memdisk_img':
                     f.write(menus.memdisk_img_cfg(syslinux=False, grub=True))
                 elif config.distro == 'memdisk_iso':
                     f.write(menus.memdisk_iso_cfg(syslinux=False, grub=True))
                 elif config.distro == 'memtest':
-                    f.write('     menuentry ' + iso.iso_basename(config.image_path) +
-                            ' {linux16 ' + '/multibootusb/' + iso.iso_basename(config.image_path) + '/BISOLINUX/MEMTEST}' + "\n")
+                    f.write(
+                        (
+                            (
+                                (
+                                    (
+                                        f'     menuentry {iso.iso_basename(config.image_path)}'
+                                        + ' {linux16 '
+                                    )
+                                    + '/multibootusb/'
+                                )
+                                + iso.iso_basename(config.image_path)
+                                + '/BISOLINUX/MEMTEST}'
+                            )
+                            + "\n"
+                        )
+                    )
                 elif syslinux_menu is not None:
-                    f.write('     menuentry ' + iso.iso_basename(config.image_path) + ' {syslinux_configfile '
-                            + '/multibootusb/' + iso.iso_basename(config.image_path) + '/' + syslinux_menu + '}' + "\n")
-                f.write("#end " + iso.iso_basename(config.image_path) + "\n")
+                    f.write(
+                        (
+                            (
+                                (
+                                    (
+                                        (
+                                            f'     menuentry {iso.iso_basename(config.image_path)}'
+                                            + ' {syslinux_configfile '
+                                            + '/multibootusb/'
+                                        )
+                                        + iso.iso_basename(config.image_path)
+                                        + '/'
+                                    )
+                                    + syslinux_menu
+                                )
+                                + '}'
+                            )
+                            + "\n"
+                        )
+                    )
+                f.write(f"#end {iso.iso_basename(config.image_path)}" + "\n")
 
     # Ascertain if the entry is made..
     if gen.check_text_in_file(mbus_grub_cfg_path, iso.iso_basename(config.image_path)):
@@ -154,7 +240,7 @@ def write_custom_grub_cfg(install_dir, loopback_cfg_path):
 
 def grub_custom_menu(mbus_grub_cfg_path, distro):
     iso_size_mb = bytes2human(iso.iso_size(config.image_path))
-    gen.log('size of the ISO is ' + str(iso_size_mb))
+    gen.log(f'size of the ISO is {str(iso_size_mb)}')
     if distro in ['sgrubd2', 'raw_iso']:
         grub_raw_iso(mbus_grub_cfg_path)
 
@@ -176,15 +262,25 @@ def grub_raw_iso(mbus_grub_cfg_path):
     Generic menu entry for booting ISO files directly using memdisk. Should have enough memory to load to RAM
     :return:
     """
-    menu_entry = '    search --set -f /multibootusb/' + iso.iso_basename(config.image_path) + '/' + iso.iso_name(config.image_path) + '\n' \
-                 '    menuentry ' + iso.iso_basename(config.image_path) + ' {\n' \
-                 '    linux16 /multibootusb/memdisk iso raw vmalloc=750M\n' \
-                 '    initrd16 /multibootusb/' + iso.iso_basename(config.image_path) + '/' + iso.iso_name(config.image_path) + '\n' \
-                 '}\n'
+    menu_entry = (
+        (
+            (
+                f'    search --set -f /multibootusb/{iso.iso_basename(config.image_path)}/{iso.iso_name(config.image_path)}'
+                + '\n'
+                '    menuentry '
+            )
+            + iso.iso_basename(config.image_path)
+            + ' {\n'
+            '    linux16 /multibootusb/memdisk iso raw vmalloc=750M\n'
+            '    initrd16 /multibootusb/'
+        )
+        + iso.iso_basename(config.image_path)
+        + '/'
+    ) + iso.iso_name(config.image_path) + '\n' '}\n'
     with open(mbus_grub_cfg_path, 'a') as f:
-        f.write("#start " + iso.iso_basename(config.image_path) + "\n")
+        f.write(f"#start {iso.iso_basename(config.image_path)}" + "\n")
         f.write(menu_entry)
-        f.write("#end " + iso.iso_basename(config.image_path) + "\n")
+        f.write(f"#end {iso.iso_basename(config.image_path)}" + "\n")
     return menu_entry
 
 
@@ -194,7 +290,7 @@ def write_to_file(file_path, _strings):
         with open(file_path, 'a') as f:
             f.write(_strings + '\n')
     except:
-        gen.log('Error writing to %s...' % file_path)
+        gen.log(f'Error writing to {file_path}...')
 
 
 def locate_kernel_file(subpath, isolinux_dir):
@@ -205,17 +301,17 @@ def locate_kernel_file(subpath, isolinux_dir):
     #            % subpath)
     #    return subpath
     if subpath[:1] != '/':
-        subpath = '/' + subpath
+        subpath = f'/{subpath}'
     if os.path.exists(os.path.join(config.usb_mount, subpath[1:])):
-        gen.log("Accepting kernel/initrd path '%s' as it exists." % subpath)
+        gen.log(f"Accepting kernel/initrd path '{subpath}' as it exists.")
         return subpath
     _iso_basename = iso.iso_basename(config.image_path)
     subpath = subpath[1:]  # strip off the leading '/'
-    drive_relative_prefix = 'multibootusb/' + _iso_basename + '/'
+    drive_relative_prefix = f'multibootusb/{_iso_basename}/'
     if subpath.startswith(drive_relative_prefix):
         # Paths is already drive-relative make it install-dir-relative.
         subpath = subpath[len(drive_relative_prefix):]
-    gen.log("Trying to locate kernel/initrd file '%s'" % subpath)
+    gen.log(f"Trying to locate kernel/initrd file '{subpath}'")
     for d in [
             os.path.join('multibootusb', _iso_basename, isolinux_dir or ''),
             # Down below are dire attemps to find.
@@ -224,11 +320,11 @@ def locate_kernel_file(subpath, isolinux_dir):
             ]:
         fullpath = os.path.join(config.usb_mount, d, subpath)
         if os.path.exists(fullpath):
-            gen.log("Digged out '%s' at '%s'" % (subpath, fullpath))
+            gen.log(f"Digged out '{subpath}' at '{fullpath}'")
             unix_style_path = os.path.join(d, subpath).\
                               replace('\\', '/').\
                               lstrip('/')
-            return ('/' + unix_style_path)
+            return f'/{unix_style_path}'
     return subpath_original
         
         
@@ -251,9 +347,10 @@ def tweak_bootfile_path(img_file_spec, isolinux_dir):
         # Fallback to legacy code.
         # "... I found this only in dban"
         iso_dir = iso.isolinux_bin_dir(config.image_path)
-        replacement = ' /multibootusb/' + iso.iso_basename(config.image_path) \
-                      + '/' \
-                      + iso_dir.replace('\\', '/') + '/'
+        replacement = (
+            f' /multibootusb/{iso.iso_basename(config.image_path)}/'
+            + iso_dir.replace('\\', '/')
+        ) + '/'
         return img_file_spec.replace('z,', replacement)
     # Give up and return the original with replaced delimeters.
     return ' '.join(img_file_spec.split(','))
@@ -263,11 +360,11 @@ def extract_initrd_params_and_fix_kernel(value, isolinux_dir):
     initrd_line, others  = '', []
     tokens = value.split(' ')
     tokens.reverse()
-    while 0<len(tokens):
+    while len(tokens) > 0:
         token = tokens.pop()
         if token=='linux':
             # deal with 'append linux /boot/bzImage' in salitaz-rolling
-            if 0<len(tokens):
+            if len(tokens) > 0:
                 kernel_file = locate_kernel_file(tokens.pop(), isolinux_dir)
                 others.extend(['linux', kernel_file])
             else:

@@ -32,7 +32,7 @@ def install_distro():
                                iso_basename(config.image_path))
 
     if not os.path.exists(os.path.join(usb_mount, "multibootusb")):
-        log("Copying multibootusb directory to " + usb_mount)
+        log(f"Copying multibootusb directory to {usb_mount}")
         shutil.copytree(
             resource_path(os.path.join("data", "tools", "multibootusb")),
             os.path.join(config.usb_mount, "multibootusb"))
@@ -52,7 +52,7 @@ def install_distro():
         with open(os.path.join(install_dir, "iso_file_list.cfg"), 'r') as f:
             _iso_file_list = [s.strip() for s in f.readlines()]
 
-    log("Installing " + iso_name(config.image_path) + " on " + install_dir)
+    log(f"Installing {iso_name(config.image_path)} on {install_dir}")
 
     # Some distros requires certain directories be at the root.
     relocator = DirectoryRelocator(install_dir, usb_mount)
@@ -60,11 +60,10 @@ def install_distro():
     if config.distro == "opensuse":
         iso.iso_extract_file(config.image_path, install_dir, 'boot')
         config.status_text = "Copying ISO..."
-        log("Copying " + config.image_path + " to " + usb_mount)
+        log(f"Copying {config.image_path} to {usb_mount}")
         copy_iso(config.image_path, usb_mount)
-    elif config.distro == "Windows" or config.distro == 'pc-unlocker'\
-            or config.distro == 'pc-tool' or config.distro == 'grub2only':
-        log("Extracting iso to " + usb_mount)
+    elif config.distro in ["Windows", 'pc-unlocker', 'pc-tool', 'grub2only']:
+        log(f"Extracting iso to {usb_mount}")
         iso_extract_full(config.image_path, usb_mount)
     elif config.distro == "trinity-rescue":
         iso_extract_full(config.image_path, install_dir)
@@ -104,8 +103,12 @@ def install_distro():
         iso_extract_full(config.image_path, usb_mount)
     elif config.distro == 'ReactOS':
         iso_extract_full(config.image_path, usb_mount)
-    elif config.distro == 'grub4dos_iso' or config.distro == 'raw_iso' or config.distro == 'memdisk_iso' or \
-                    config.distro == 'memdisk_img':
+    elif config.distro in [
+        'grub4dos_iso',
+        'raw_iso',
+        'memdisk_iso',
+        'memdisk_img',
+    ]:
         copy_iso(config.image_path, install_dir)
     elif config.distro == 'Avira-RS':
         iso_extract_full(config.image_path, install_dir)
@@ -177,8 +180,7 @@ def install_progress():
     while thrd.is_alive():
         current_size = shutil.disk_usage(usb_details['mount_point'])[1]
         percentage = int((current_size / final_size) * 100)
-        if percentage > 100:
-            percentage = 100
+        percentage = min(percentage, 100)
         config.percentage = percentage
         pbar.update(percentage)
         time.sleep(0.1)
@@ -205,19 +207,19 @@ def replace_syslinux_modules(syslinux_version, under_this_dir):
                 except lzma.LZMAError:
                     continue
                 except (OSError, IOError) as e:
-                    log("%s while accessing %s." % (e, dst_path))
+                    log(f"{e} while accessing {dst_path}.")
                     continue
                 with open(dst_path, 'wb') as f:
                     f.write(expanded)
-                log("Successfully decompressed %s." % fname)
+                log(f"Successfully decompressed {fname}.")
                 continue
             try:
                 os.remove(dst_path)
                 shutil.copy(src_path, dst_path)
-                log("Replaced %s module" % fname)
+                log(f"Replaced {fname} module")
             except (OSError, IOError) as err:
                 log(err)
-                log("Could not update " + fname)
+                log(f"Could not update {fname}")
 
 def install_patch():
     """
@@ -237,9 +239,7 @@ def install_patch():
         config.usb_mount, "multibootusb", iso_basename(config.image_path))
     config.syslinux_version = isolinux_version(isolinux_path)
 
-    if config.distro in ['slitaz', 'ubunu']:
-        replace_syslinux_modules(config.syslinux_version, distro_install_dir)
-    elif config.distro == 'gentoo':
+    if config.distro in ['slitaz', 'ubunu', 'gentoo']:
         replace_syslinux_modules(config.syslinux_version, distro_install_dir)
     elif config.distro == 'debian':
         iso_file_list = iso.iso_file_list(config.image_path)
@@ -260,8 +260,7 @@ class DirectoryRelocator:
 
     def move(self, dirs):
         for dir_name in dirs:
-            log('Relocating %s from %s to %s' %
-                (dir_name, self.src_dir, self.dst_dir))
+            log(f'Relocating {dir_name} from {self.src_dir} to {self.dst_dir}')
             src = os.path.join(self.src_dir, dir_name)
             dst = os.path.join(self.dst_dir, dir_name)
             if os.path.exists(dst):

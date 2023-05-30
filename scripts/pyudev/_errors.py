@@ -180,8 +180,7 @@ class DeviceValueError(DeviceError):
         self._msg = msg
 
     def __str__(self):
-        if self._msg:
-            fmt_str = self._FMT_STR + ": %s"
-            return fmt_str % (self._value, self._param, self._msg)
-        else:
+        if not self._msg:
             return self._FMT_STR % (self._value, self._param)
+        fmt_str = f"{self._FMT_STR}: %s"
+        return fmt_str % (self._value, self._param, self._msg)

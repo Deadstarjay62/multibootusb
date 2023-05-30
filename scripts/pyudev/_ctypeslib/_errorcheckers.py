@@ -69,12 +69,11 @@ def check_negative_errorcode(result, func, *args):
     If result is greater or equal to ``0``, it is returned unchanged.
 
     """
-    if result < 0:
-        # udev returns the *negative* errno code at this point
-        errnum = -result
-        raise exception_from_errno(errnum)
-    else:
+    if result >= 0:
         return result
+    # udev returns the *negative* errno code at this point
+    errnum = -result
+    raise exception_from_errno(errnum)
 
 
 def check_errno_on_nonzero_return(result, func, *args):

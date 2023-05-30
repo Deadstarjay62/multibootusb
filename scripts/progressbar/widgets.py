@@ -34,8 +34,7 @@ else:
 
 
 def format_updatable(updatable, pbar):
-    if hasattr(updatable, 'update'): return updatable.update(pbar)
-    else: return updatable
+    return updatable.update(pbar) if hasattr(updatable, 'update') else updatable
 
 
 class Widget(AbstractWidget):
@@ -110,11 +109,11 @@ class ETA(Timer):
         if pbar.currval == 0:
             return 'ETA:  --:--:--'
         elif pbar.finished:
-            return 'Time: %s' % self.format_time(pbar.seconds_elapsed)
+            return f'Time: {self.format_time(pbar.seconds_elapsed)}'
         else:
             elapsed = pbar.seconds_elapsed
             eta = elapsed * pbar.maxval / pbar.currval - elapsed
-            return 'ETA:  %s' % self.format_time(eta)
+            return f'ETA:  {self.format_time(eta)}'
 
 
 class AdaptiveETA(Timer):
@@ -148,7 +147,7 @@ class AdaptiveETA(Timer):
         if pbar.currval == 0:
             return 'ETA:  --:--:--'
         elif pbar.finished:
-            return 'Time: %s' % self.format_time(pbar.seconds_elapsed)
+            return f'Time: {self.format_time(pbar.seconds_elapsed)}'
         else:
             elapsed = pbar.seconds_elapsed
             currval1, elapsed1 = self._update_samples(pbar.currval, elapsed)
@@ -159,7 +158,7 @@ class AdaptiveETA(Timer):
                                     elapsed - elapsed1)
                 weight = (pbar.currval / float(pbar.maxval)) ** 0.5
                 eta = (1 - weight) * eta + weight * etasamp
-            return 'ETA:  %s' % self.format_time(eta)
+            return f'ETA:  {self.format_time(eta)}'
 
 
 class FileTransferSpeed(Widget):
@@ -251,10 +250,7 @@ class FormatLabel(Timer):
             try:
                 value = getattr(pbar, key)
 
-                if transform is None:
-                   context[name] = value
-                else:
-                   context[name] = transform(value)
+                context[name] = value if transform is None else transform(value)
             except:
                 raise
 
@@ -309,9 +305,9 @@ class Bar(WidgetHFill):
           marked = ''
 
         if self.fill_left:
-            return '%s%s%s' % (left, marked.ljust(width, self.fill), right)
+            return f'{left}{marked.ljust(width, self.fill)}{right}'
         else:
-            return '%s%s%s' % (left, marked.rjust(width, self.fill), right)
+            return f'{left}{marked.rjust(width, self.fill)}{right}'
 
 
 class ReverseBar(Bar):
@@ -343,7 +339,8 @@ class BouncingBar(Bar):
 
         width -= len(left) + len(right)
 
-        if pbar.finished: return '%s%s%s' % (left, width * marker, right)
+        if pbar.finished:
+            return f'{left}{width * marker}{right}'
 
         position = int(pbar.currval % (width * 2 - 1))
         if position > width: position = width * 2 - position
@@ -353,4 +350,4 @@ class BouncingBar(Bar):
         # Swap if we want to bounce the other way
         if not self.fill_left: rpad, lpad = lpad, rpad
 
-        return '%s%s%s%s%s' % (left, lpad, marker, rpad, right)
+        return f'{left}{lpad}{marker}{rpad}{right}'

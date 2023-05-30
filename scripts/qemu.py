@@ -45,8 +45,7 @@ class Qemu(QtWidgets.QMainWindow, Ui_MainWindow):
             options.extend(['-m', ram_size])
         if getattr(config, 'qemu_use_haxm', False):
             options.extend(['-accel', 'hax'])
-        bios = getattr(config, 'qemu_bios', None)
-        if bios:
+        if bios := getattr(config, 'qemu_bios', None):
             options.extend(['-bios', bios])
         if platform.system()=='Linux' and getattr(config,'qemu_use_kvm', True):
             options.append('-enable-kvm')
@@ -59,11 +58,10 @@ class Qemu(QtWidgets.QMainWindow, Ui_MainWindow):
                 os.chdir(new_wd)
             try:
                 with usb.UnmountedContext(config.usb_disk,
-                                          self.update_usb_mount):
-                    log("Executing ==> %s" % cmd)
-                    out = subprocess.check_output(cmd)
-                    if out:
-                        log('%s => %s' % (cmd, out))
+                                                      self.update_usb_mount):
+                    log(f"Executing ==> {cmd}")
+                    if out := subprocess.check_output(cmd):
+                        log(f'{cmd} => {out}')
             finally:
                 if new_wd:
                     os.chdir(old_wd)
@@ -144,7 +142,7 @@ class Qemu(QtWidgets.QMainWindow, Ui_MainWindow):
             qemu = find_qemu_exe()
 
         if qemu:
-            log("QEMU: using " + qemu)
+            log(f"QEMU: using {qemu}")
         else:
             log("QEMU: ERROR: not found!")
 

@@ -108,11 +108,11 @@ class Imager(QtWidgets.QMainWindow, Ui_MainWindow):
             log("ISO is not bootable.")
 
         if os.path.exists(config.image_path):
-            log("Path " + config.image_path + " exists...")
+            log(f"Path {config.image_path} exists...")
             self.iso_size = str(round(os.path.getsize(config.image_path) / 1024 / 1024))
             self.ui.imager_iso_size.setVisible(True)
-            self.ui.imager_iso_size.setText("ISO Size: " + self.iso_size + " MB")
-            log("ISO Size is " + self.iso_size + " MB")
+            self.ui.imager_iso_size.setText(f"ISO Size: {self.iso_size} MB")
+            log(f"ISO Size is {self.iso_size} MB")
 
     @staticmethod
     def imager_list_usb(partition=1):
@@ -128,18 +128,20 @@ class Imager(QtWidgets.QMainWindow, Ui_MainWindow):
                 for line in output.splitlines():
                     line = line.split()
                     if (line[2].strip()) == b'1' and (line[5].strip()) == b'disk':
-                        disk.append(str("/dev/" + str(line[0].strip().decode())))
-            elif partition == 1:
+                        disk.append(str(f"/dev/{str(line[0].strip().decode())}"))
+            else:
                 for line in output.splitlines():
                     line = line.split()
                     if (line[2].strip()) == b'1' and line[5].strip() == b'part':
-                        disk.append(str("/dev/" + str(line[0].strip()[2:])))
+                        disk.append(str(f"/dev/{str(line[0].strip()[2:])}"))
         else:
             oFS = win32com.client.Dispatch("Scripting.FileSystemObject")
             oDrives = oFS.Drives
-            for drive in oDrives:
-                if drive.DriveType == 1 and drive.IsReady:
-                    disk.append(drive)
+            disk.extend(
+                drive
+                for drive in oDrives
+                if drive.DriveType == 1 and drive.IsReady
+            )
         return disk
 
     @staticmethod
@@ -153,8 +155,7 @@ class Imager(QtWidgets.QMainWindow, Ui_MainWindow):
             'usage', 'total_size usb_type model')
 
         if platform.system() == "Linux":
-            output = subprocess.check_output("lsblk -ib " + physical_disk,
-                                             shell=True)
+            output = subprocess.check_output(f"lsblk -ib {physical_disk}", shell=True)
             for line in output.splitlines():
                 line = line.split()
                 if line[2].strip() == b'1' and line[5].strip() == b'disk':
@@ -162,9 +163,13 @@ class Imager(QtWidgets.QMainWindow, Ui_MainWindow):
                     if not total_size:
                         total_size = "Unknown"
                     usb_type = "Removable"
-                    model = subprocess.check_output(
-                        "lsblk -in -f -o MODEL " + physical_disk,
-                        shell=True).decode().strip()
+                    model = (
+                        subprocess.check_output(
+                            f"lsblk -in -f -o MODEL {physical_disk}", shell=True
+                        )
+                        .decode()
+                        .strip()
+                    )
                     if not model:
                         model = "Unknown"
         else:
@@ -180,11 +185,9 @@ class Imager(QtWidgets.QMainWindow, Ui_MainWindow):
         :param usb_disk: USB disk like "/dev/sdb"
         :return: Size of the disk as integer
         """
-        if platform.system() == "Linux":
-            cat_output = subprocess.check_output("cat /proc/partitions | grep  " + usb_disk[5:], shell=True)
-            usb_size = int(cat_output.split()[2]) * 1024
-            # log(usb_size)
-            return usb_size
-        else:
-            usb_size = self.usb.disk_usage(self.usb.get_usb(usb_disk).mount).total
-            return usb_size
+        if platform.system() != "Linux":
+            return self.usb.disk_usage(self.usb.get_usb(usb_disk).mount).total
+        cat_output = subprocess.check_output(
+            f"cat /proc/partitions | grep  {usb_disk[5:]}", shell=True
+        )
+        return int(cat_output.split()[2]) * 1024
