@@ -31,7 +31,7 @@ class OpenMock:
 OPEN_MOCK = OpenMock()
 
 def gen_log(obj):
-    print ('[*] %s' % obj)
+    print(f'[*] {obj}')
 
 def my_open(fname, mode, **kw):
     return OPEN_MOCK
@@ -47,9 +47,7 @@ def os_path_exists(f):
         return True
     if chunks[1] in ['rootfs1.gz', 'rootfs2.gz']:
         return True
-    if chunks == ['multibootusb', 'debian-sid', 'boot', 'rootfs4.gz']:
-        return True
-    return False
+    return chunks == ['multibootusb', 'debian-sid', 'boot', 'rootfs4.gz']
 
 def os_walk(dirpath):
     return [('isolinux', [], ['isolinux.cfg'])]

@@ -164,11 +164,7 @@ def eintr_retry_call(func, *args, **kwargs):
         except (OSError, IOError, select.error) as err:
             # If this is not an IOError or OSError, it's the old select.error
             # type, which means that the errno is only accessible via subscript
-            if isinstance(err, (OSError, IOError)):
-                error_code = err.errno
-            else:
-                error_code = err.args[0]
-
+            error_code = err.errno if isinstance(err, (OSError, IOError)) else err.args[0]
             if error_code == errno.EINTR:
                 continue
             raise

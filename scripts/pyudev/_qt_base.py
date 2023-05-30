@@ -150,12 +150,12 @@ class MonitorObserverGenerator(object):
 
         """
         return type(
-           str("MonitorObserver"),
-           (qobject, MonitorObserverMixin),
-           {
-              str("__init__") : make_init(qobject, socket_notifier),
-              str("deviceEvent") : signal(Device)
-           }
+            "MonitorObserver",
+            (qobject, MonitorObserverMixin),
+            {
+                "__init__": make_init(qobject, socket_notifier),
+                "deviceEvent": signal(Device),
+            },
         )
 
 
@@ -189,19 +189,14 @@ class QUDevMonitorObserverGenerator(object):
 
         """
         return type(
-           str("QUDevMonitorObserver"),
-           (qobject, QUDevMonitorObserverMixin),
-           {
-              str("__init__") : make_init(qobject, socket_notifier),
-              #: emitted upon arbitrary device events
-              str("deviceEvent") : signal(six.text_type, Device),
-              #: emitted if a device was added
-              str("deviceAdded") : signal(Device),
-              #: emitted if a device was removed
-              str("deviceRemoved") : signal(Device),
-              #: emitted if a device was changed
-              str("deviceChanged") : signal(Device),
-              #: emitted if a device was moved
-              str("deviceMoved") : signal(Device)
-           }
+            "QUDevMonitorObserver",
+            (qobject, QUDevMonitorObserverMixin),
+            {
+                "__init__": make_init(qobject, socket_notifier),
+                "deviceEvent": signal(six.text_type, Device),
+                "deviceAdded": signal(Device),
+                "deviceRemoved": signal(Device),
+                "deviceChanged": signal(Device),
+                "deviceMoved": signal(Device),
+            },
         )

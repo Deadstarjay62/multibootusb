@@ -54,9 +54,9 @@ def extract_iso(src, dst, pattern=None, suppress_out=True):
         pattern_str = ' '.join(gen.quote(s) for s in pattern)
         _cmd = _7zip + cli_option + ' x -y ' + src + \
                ' -o' + dst + ' ' + pattern_str + ' -r' + suppress_out
-    gen.log('Executing ==> ' + _cmd)
+    gen.log(f'Executing ==> {_cmd}')
 
-    config.status_text = 'Status: Extracting ' + os.path.basename(src).strip()
+    config.status_text = f'Status: Extracting {os.path.basename(src).strip()}'
     with open(os.devnull, 'w') as devnull:
         subprocess.call(_cmd, stdin=devnull, stdout=devnull, stderr=devnull, shell=True)
 
@@ -71,15 +71,14 @@ def list_iso(iso_link, suppress_out=True, expose_exception=False):
     if platform.system() == 'Windows':
         if suppress_out is True:
             suppress_out = ' 2> nul'
-    else:
-        if suppress_out is True:
-            suppress_out = ' 2> /dev/null'
+    elif suppress_out is True:
+        suppress_out = ' 2> /dev/null'
     if not os.path.exists(iso_link):
         gen.log('Path to ISO link does not exist.')
         return False
     else:
         file_list = []
-        _cmd = _7zip + ' l ' + gen.quote(iso_link) + suppress_out
+        _cmd = f'{_7zip} l {gen.quote(iso_link)}{suppress_out}'
         try:
             _cmd_out = subprocess.check_output(_cmd, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
                                                shell=True).decode('utf-8', 'ignore').splitlines()
@@ -113,17 +112,16 @@ def test_iso(iso_link, suppress_out=True):
     if platform.system() == 'Windows':
         if suppress_out is True:
             suppress_out = ' > nul'
-    else:
-        if suppress_out is True:
-            suppress_out = ' > /dev/null'
+    elif suppress_out is True:
+        suppress_out = ' > /dev/null'
 
-    _cmd = _7zip + ' t ' + iso_link + suppress_out
+    _cmd = f'{_7zip} t {iso_link}{suppress_out}'
 
-    gen.log('Executing ==> ' + _cmd)
+    gen.log(f'Executing ==> {_cmd}')
 
     rc = subprocess.call(_cmd, shell=True)
 
-    return bool(rc in [0, 1])
+    return rc in [0, 1]
 
 def test_extraction():
     import shutil
@@ -142,7 +140,7 @@ def test_extraction():
         args = [src, dest_dir]
         if pattern is not None:
             args.append(pattern)
-        print ('Calling extract_iso(%s)' % args)
+        print(f'Calling extract_iso({args})')
         extract_iso(*args)
 
 if __name__ == '__main__':

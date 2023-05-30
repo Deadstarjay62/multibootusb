@@ -102,11 +102,12 @@ class Devices(object):
 
         .. versionadded:: 0.18
         """
-        device = context._libudev.udev_device_new_from_syspath(
-            context, ensure_byte_string(sys_path))
-        if not device:
+        if device := context._libudev.udev_device_new_from_syspath(
+            context, ensure_byte_string(sys_path)
+        ):
+            return Device(context, device)
+        else:
             raise DeviceNotFoundAtPathError(sys_path)
-        return Device(context, device)
 
     @classmethod
     def from_name(cls, context, subsystem, sys_name):
@@ -132,12 +133,12 @@ class Devices(object):
         .. versionadded:: 0.18
         """
         sys_name = sys_name.replace("/", "!")
-        device = context._libudev.udev_device_new_from_subsystem_sysname(
-            context, ensure_byte_string(subsystem),
-            ensure_byte_string(sys_name))
-        if not device:
+        if device := context._libudev.udev_device_new_from_subsystem_sysname(
+            context, ensure_byte_string(subsystem), ensure_byte_string(sys_name)
+        ):
+            return Device(context, device)
+        else:
             raise DeviceNotFoundByNameError(subsystem, sys_name)
-        return Device(context, device)
 
     @classmethod
     def from_device_number(cls, context, typ, number):
@@ -176,11 +177,12 @@ class Devices(object):
 
         .. versionadded:: 0.18
         """
-        device = context._libudev.udev_device_new_from_devnum(
-            context, ensure_byte_string(typ[0]), number)
-        if not device:
+        if device := context._libudev.udev_device_new_from_devnum(
+            context, ensure_byte_string(typ[0]), number
+        ):
+            return Device(context, device)
+        else:
             raise DeviceNotFoundByNumberError(typ, number)
-        return Device(context, device)
 
     @classmethod
     def from_device_file(cls, context, filename):
@@ -263,12 +265,8 @@ class Devices(object):
         rest = kernel_device[1:]
         if switch_char in ('b', 'c'):
             number_re = re.compile(r'^(?P<major>\d+):(?P<minor>\d+)$')
-            match = number_re.match(rest)
-            if match:
-                number = os.makedev(
-                   int(match.group('major')),
-                   int(match.group('minor'))
-                )
+            if match := number_re.match(rest):
+                number = os.makedev(int(match['major']), int(match['minor']))
                 return cls.from_device_number(context, switch_char, number)
             else:
                 raise DeviceNotFoundByKernelDeviceError(kernel_device)
@@ -305,10 +303,10 @@ class Devices(object):
 
         .. versionadded:: 0.18
         """
-        device = context._libudev.udev_device_new_from_environment(context)
-        if not device:
+        if device := context._libudev.udev_device_new_from_environment(context):
+            return Device(context, device)
+        else:
             raise DeviceNotFoundInEnvironmentError()
-        return Device(context, device)
 
     @classmethod
     def METHODS(cls): # pylint: disable=invalid-name
@@ -476,12 +474,12 @@ class Device(Mapping):
         The parent :class:`Device` or ``None``, if there is no parent
         device.
         """
-        parent = self._libudev.udev_device_get_parent(self)
-        if not parent:
+        if parent := self._libudev.udev_device_get_parent(self):
+            # the parent device is not referenced, thus forcibly acquire a
+            # reference
+            return Device(self.context, self._libudev.udev_device_ref(parent))
+        else:
             return None
-        # the parent device is not referenced, thus forcibly acquire a
-        # reference
-        return Device(self.context, self._libudev.udev_device_ref(parent))
 
     @property
     def children(self):
@@ -551,12 +549,13 @@ class Device(Mapping):
         subsystem = ensure_byte_string(subsystem)
         if device_type is not None:
             device_type = ensure_byte_string(device_type)
-        parent = self._libudev.udev_device_get_parent_with_subsystem_devtype(
-            self, subsystem, device_type)
-        if not parent:
+        if parent := self._libudev.udev_device_get_parent_with_subsystem_devtype(
+            self, subsystem, device_type
+        ):
+            # parent device is not referenced, thus forcibly acquire a reference
+            return Device(self.context, self._libudev.udev_device_ref(parent))
+        else:
             return None
-        # parent device is not referenced, thus forcibly acquire a reference
-        return Device(self.context, self._libudev.udev_device_ref(parent))
 
     def traverse(self):
         """

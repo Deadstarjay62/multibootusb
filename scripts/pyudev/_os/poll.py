@@ -62,10 +62,10 @@ class Poll(object):
         """
         notifier = eintr_retry_call(select.poll)
         for fd, event in events:
-            mask = cls._EVENT_TO_MASK.get(event)
-            if not mask:
+            if mask := cls._EVENT_TO_MASK.get(event):
+                notifier.register(fd, mask)
+            else:
                 raise ValueError('Unknown event type: {0!r}'.format(event))
-            notifier.register(fd, mask)
         return cls(notifier)
 
     def __init__(self, notifier):

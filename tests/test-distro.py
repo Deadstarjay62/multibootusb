@@ -122,9 +122,8 @@ class DistoDetection(unittest.TestCase):
 
     def test_distro_detection(self):
         def os_path_exists(f):
-            if f.endswith('multibootusb.log'):
-                return False
-            return True
+            return not f.endswith('multibootusb.log')
+
         os_path_exists_mock = MM()
         log_mock = MM()
         @patch('os.path.exists', os_path_exists)
@@ -139,7 +138,8 @@ class DistoDetection(unittest.TestCase):
             assert fn(['mt86.png','isolinux']) == 'raw_iso'
             assert fn(['menu.lst']) == 'grub4dos'
             assert fn(['bootwiz.cfg', 'bootmenu_logo.png']) == \
-                'grub4dos_iso'
+                    'grub4dos_iso'
+
         _()
     
 if __name__ == '__main__':

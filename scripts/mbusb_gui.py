@@ -47,74 +47,74 @@ class AppGui(qemu.Qemu, Imager, QtWidgets.QMainWindow, Ui_MainWindow):
     """
 
     def __init__(self):
-        QtWidgets.QMainWindow.__init__(self)
-        self.ui = Ui_MainWindow()
-        self.ui.setupUi(self)
+            QtWidgets.QMainWindow.__init__(self)
+            self.ui = Ui_MainWindow()
+            self.ui.setupUi(self)
 
-        self.ui.tabWidget.setCurrentIndex(0)
-        #       self.qemu = Qemu()
+            self.ui.tabWidget.setCurrentIndex(0)
+            #       self.qemu = Qemu()
 
-        self.ui.label_persistence_value.setVisible(False)
-        self.ui.label_persistence.setVisible(False)
-        self.ui.slider_persistence.setVisible(False)
+            self.ui.label_persistence_value.setVisible(False)
+            self.ui.label_persistence.setVisible(False)
+            self.ui.slider_persistence.setVisible(False)
 
-        #  Main Tab
-        self.ui.checkbox_all_drives.clicked.connect(self.onAllDrivesClicked)
-        self.ui.button_detect_drives.clicked.connect(self.onRefreshClick)
-        self.ui.action_Quit.triggered.connect(self.on_close_Click)
-        self.ui.action_About.triggered.connect(self.onAboutClick)
-        self.ui.button_browse_image.clicked.connect(self.browse_iso)
-        #         self.ui.combo_drives.activated[str].connect(self.onComboChange)
-        self.ui.combo_drives.currentIndexChanged.connect(self.onComboChange)
-        self.ui.button_install_distro.clicked.connect(self.onCreateClick)
-        self.ui.button_uninstall_distro.clicked.connect(self.OnUninstallClick)
-        self.ui.slider_persistence.valueChanged.connect(self.update_slider_text)
-        #         self.ui.slider_persistence.sliderReleased.connect(self.ui_update_persistence)
+            #  Main Tab
+            self.ui.checkbox_all_drives.clicked.connect(self.onAllDrivesClicked)
+            self.ui.button_detect_drives.clicked.connect(self.onRefreshClick)
+            self.ui.action_Quit.triggered.connect(self.on_close_Click)
+            self.ui.action_About.triggered.connect(self.onAboutClick)
+            self.ui.button_browse_image.clicked.connect(self.browse_iso)
+            #         self.ui.combo_drives.activated[str].connect(self.onComboChange)
+            self.ui.combo_drives.currentIndexChanged.connect(self.onComboChange)
+            self.ui.button_install_distro.clicked.connect(self.onCreateClick)
+            self.ui.button_uninstall_distro.clicked.connect(self.OnUninstallClick)
+            self.ui.slider_persistence.valueChanged.connect(self.update_slider_text)
+            #         self.ui.slider_persistence.sliderReleased.connect(self.ui_update_persistence)
 
-        # ISO Imager Tab
-        self.ui.button_write_image_to_disk.clicked.connect(self.dd_write)
+            # ISO Imager Tab
+            self.ui.button_write_image_to_disk.clicked.connect(self.dd_write)
 
-        #  Syslinux Tab
-        self.ui.button_install_syslinux.clicked.connect(self.onInstall_syslinuxClick)
-        self.ui.button_edit_syslinux.clicked.connect(self.onedit_syslinux)
+            #  Syslinux Tab
+            self.ui.button_install_syslinux.clicked.connect(self.onInstall_syslinuxClick)
+            self.ui.button_edit_syslinux.clicked.connect(self.onedit_syslinux)
 
-        # QEMU Tab
-        self.ui.boot_iso_qemu.clicked.connect(self.on_Qemu_Boot_iso_Click)
-        self.ui.boot_usb_qemu.clicked.connect(self.on_Qemu_Boot_usb_Click)
-        #         self.ui.combo_iso_boot_ram.activated[str].connect(self.qemu_iso_ram)
-        #         self.ui.combo_usb_boot_ram.activated[str].connect(self.qemu_usb_ram)
-        #         self.ui.boot_usb_qemu.clicked.connect(lambda: self.on_Qemu_Boot_usb_Click(str(self.ui.combo_drives.currentText())))
+            # QEMU Tab
+            self.ui.boot_iso_qemu.clicked.connect(self.on_Qemu_Boot_iso_Click)
+            self.ui.boot_usb_qemu.clicked.connect(self.on_Qemu_Boot_usb_Click)
+            #         self.ui.combo_iso_boot_ram.activated[str].connect(self.qemu_iso_ram)
+            #         self.ui.combo_usb_boot_ram.activated[str].connect(self.qemu_usb_ram)
+            #         self.ui.boot_usb_qemu.clicked.connect(lambda: self.on_Qemu_Boot_usb_Click(str(self.ui.combo_drives.currentText())))
 
-        self.ui.run_fsck_repair.clicked.connect(
-            partial(self.onFsckClick, usb.repair_vfat_filesystem))
-        self.ui.run_fsck_check.clicked.connect(
-            partial(self.onFsckClick, usb.check_vfat_filesystem))
+            self.ui.run_fsck_repair.clicked.connect(
+                partial(self.onFsckClick, usb.repair_vfat_filesystem))
+            self.ui.run_fsck_check.clicked.connect(
+                partial(self.onFsckClick, usb.check_vfat_filesystem))
 
-        #  Update progressbar and status  (Main ISO install)
-        self.progress_thread_install = GuiInstallProgress()
-        self.progress_thread_install.finished.connect(self.install_syslinux)
-        self.progress_thread_install.update.connect(self.ui.progressbar.setValue)
-        self.progress_thread_install.status.connect(self.ui.statusbar.showMessage)
+            #  Update progressbar and status  (Main ISO install)
+            self.progress_thread_install = GuiInstallProgress()
+            self.progress_thread_install.finished.connect(self.install_syslinux)
+            self.progress_thread_install.update.connect(self.ui.progressbar.setValue)
+            self.progress_thread_install.status.connect(self.ui.statusbar.showMessage)
 
-        #  Update progressbar and status  (Uninstall from previous install)
-        self.progress_thread_uninstall = GuiUninstallProgress()
-        self.progress_thread_uninstall.finished.connect(self.uninstall_sys_file_update)
-        self.progress_thread_uninstall.update.connect(self.ui.progressbar.setValue)
-        self.progress_thread_uninstall.status.connect(self.ui.statusbar.showMessage)
+            #  Update progressbar and status  (Uninstall from previous install)
+            self.progress_thread_uninstall = GuiUninstallProgress()
+            self.progress_thread_uninstall.finished.connect(self.uninstall_sys_file_update)
+            self.progress_thread_uninstall.update.connect(self.ui.progressbar.setValue)
+            self.progress_thread_uninstall.status.connect(self.ui.statusbar.showMessage)
 
-        #  Update progressbar and status  (dd ISO)
-        self.progress_thread_dd = DD_Progress()
-        self.progress_thread_dd.update.connect(self.ui.progressbar.setValue)
-        self.progress_thread_dd.finished.connect(self.dd_finished)
-        self.progress_thread_dd.status.connect(self.ui.statusbar.showMessage)
+            #  Update progressbar and status  (dd ISO)
+            self.progress_thread_dd = DD_Progress()
+            self.progress_thread_dd.update.connect(self.ui.progressbar.setValue)
+            self.progress_thread_dd.finished.connect(self.dd_finished)
+            self.progress_thread_dd.status.connect(self.ui.statusbar.showMessage)
 
-        if platform.system() == 'Windows' or os.system('which fsck.vfat') != 0:
-            i = self.ui.tabWidget.indexOf(self.ui.tab_fsck)
-            if 0<=i:
-                self.ui.tabWidget.removeTab(i)
+            if platform.system() == 'Windows' or os.system('which fsck.vfat') != 0:
+                    i = self.ui.tabWidget.indexOf(self.ui.tab_fsck)
+                    if i >= 0:
+                            self.ui.tabWidget.removeTab(i)
 
-        prepare_mbusb_host_dir()
-        self.onRefreshClick()
+            prepare_mbusb_host_dir()
+            self.onRefreshClick()
 
     def onAllDrivesClicked(self):
         """
@@ -143,15 +143,15 @@ class AppGui(qemu.Qemu, Imager, QtWidgets.QMainWindow, Ui_MainWindow):
             self.onRefreshClick()
 
     def onAboutClick(self):
-        about = QtWidgets.QDialog()
-        about.ui = Ui_About()
-        about.ui.setupUi(about)
-        about.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        about.setWindowTitle("About MultiBootUSB - " + mbusb_version())
-        about.setWindowIcon(QtGui.QIcon(resource_path(os.path.join("data", "tools", "multibootusb.png"))))
-        about.ui.button_close.clicked.connect(about.close)
-        about.ui.label_6.linkActivated.connect(webbrowser.open_new_tab)
-        about.exec_()
+            about = QtWidgets.QDialog()
+            about.ui = Ui_About()
+            about.ui.setupUi(about)
+            about.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            about.setWindowTitle(f"About MultiBootUSB - {mbusb_version()}")
+            about.setWindowIcon(QtGui.QIcon(resource_path(os.path.join("data", "tools", "multibootusb.png"))))
+            about.ui.button_close.clicked.connect(about.close)
+            about.ui.label_6.linkActivated.connect(webbrowser.open_new_tab)
+            about.exec_()
 
     def onComboChange(self):
         """
@@ -211,101 +211,100 @@ class AppGui(qemu.Qemu, Imager, QtWidgets.QMainWindow, Ui_MainWindow):
         self.ui.combo_drives.setCurrentIndex(0)
 
     def update_list_box(self, usb_disk):
-        """
+            """
         Updates listbox with installed distros on selected USB disk.
         :param usb_mount: Selected USB disk from combobox.
         :return:
         """
-        distro_list = uninstall_distro.install_distro_list()
-        if distro_list is not None:
-            self.ui.installed_distros.clear()
-            for name in distro_list:
-                self.ui.installed_distros.addItem(name)
-        else:
-            if not config.usb_mount:
-                log("USB disk is not mounted and can't update list widget...")
+            distro_list = uninstall_distro.install_distro_list()
+            if distro_list is not None:
+                    self.ui.installed_distros.clear()
+                    for name in distro_list:
+                        self.ui.installed_distros.addItem(name)
+            elif not config.usb_mount:
+                    log("USB disk is not mounted and can't update list widget...")
 
     def browse_iso(self):
-        if str(self.ui.image_path.text()):
-            self.ui.image_path.clear()
-        preference_file_path = os.path.join(multibootusb_host_dir(),
-                                            "preference", "iso_dir.txt")
-        dir_path = ''
-        if os.path.exists(preference_file_path):
-            dir_path = open(preference_file_path, 'r').read()
+            if str(self.ui.image_path.text()):
+                self.ui.image_path.clear()
+            preference_file_path = os.path.join(multibootusb_host_dir(),
+                                                "preference", "iso_dir.txt")
+            dir_path = ''
+            if os.path.exists(preference_file_path):
+                dir_path = open(preference_file_path, 'r').read()
 
-        config.image_path = QtWidgets.QFileDialog.getOpenFileName(
-            self, 'Select an iso...', dir_path,
-            'ISO Files (*.iso);; Zip Files(*.zip);; '
-            'Img Files(*.img);; All Files(*.*)')[0]
+            config.image_path = QtWidgets.QFileDialog.getOpenFileName(
+                self, 'Select an iso...', dir_path,
+                'ISO Files (*.iso);; Zip Files(*.zip);; '
+                'Img Files(*.img);; All Files(*.*)')[0]
 
-        if config.image_path:
-            # sanity checks
-            if not is_readable(config.image_path):
-                QtWidgets.QMessageBox.critical(
-                    self,
-                    "ISO Not readable",
-                    "Sorry, the file \"{0}\" is not readable.".format(
-                        config.image_path)
-                )
-                return
-            if iso_size(config.image_path) == 0:
-                QtWidgets.QMessageBox.critical(
-                    self,
-                    "ISO is an empty file",
-                    "Sorry, the file \"{0}\" contains no data.".format(
-                        config.image_path)
-                )
-                return
-            default_dir_path = os.path.dirname(config.image_path)
-            gen.write_to_file(preference_file_path, default_dir_path)
+            if config.image_path:
+                    # sanity checks
+                    if not is_readable(config.image_path):
+                        QtWidgets.QMessageBox.critical(
+                            self,
+                            "ISO Not readable",
+                            "Sorry, the file \"{0}\" is not readable.".format(
+                                config.image_path)
+                        )
+                        return
+                    if iso_size(config.image_path) == 0:
+                        QtWidgets.QMessageBox.critical(
+                            self,
+                            "ISO is an empty file",
+                            "Sorry, the file \"{0}\" contains no data.".format(
+                                config.image_path)
+                        )
+                        return
+                    default_dir_path = os.path.dirname(config.image_path)
+                    gen.write_to_file(preference_file_path, default_dir_path)
 
-            # Detect supported distro
-            try:
-                clean_iso_cfg_ext_dir(     # Need to be cleaned.
-                    os.path.join(multibootusb_host_dir(), "iso_cfg_ext_dir"))
-                extract_cfg_file(config.image_path)
-                config.distro = distro(iso_cfg_ext_dir(), config.image_path,
-                                       expose_exception=True)
-            except Exception as exc:
-                QtWidgets.QMessageBox.critical(
-                    self,
-                    "Failure to detect distro type",
-                    'Sorry, failed in examining "{0}" to detect distro type '
-                    'due to the following reason.\n\n"{1}".'
-                    .format(config.image_path, exc)
-                )
-                return
+                    # Detect supported distro
+                    try:
+                        clean_iso_cfg_ext_dir(     # Need to be cleaned.
+                            os.path.join(multibootusb_host_dir(), "iso_cfg_ext_dir"))
+                        extract_cfg_file(config.image_path)
+                        config.distro = distro(iso_cfg_ext_dir(), config.image_path,
+                                               expose_exception=True)
+                    except Exception as exc:
+                        QtWidgets.QMessageBox.critical(
+                            self,
+                            "Failure to detect distro type",
+                            'Sorry, failed in examining "{0}" to detect distro type '
+                            'due to the following reason.\n\n"{1}".'
+                            .format(config.image_path, exc)
+                        )
+                        return
 
-            if platform.system() == "Windows":
-                if "/" in config.image_path:
-                    config.image_path = config.image_path.strip().replace("/", "\\")
+                    if platform.system() == "Windows":
+                        if "/" in config.image_path:
+                            config.image_path = config.image_path.strip().replace("/", "\\")
 
-            self.ui.image_path.insert(str(config.image_path))
-            self.ui.label_image_size_value.setText(str(bytes2human(iso_size(config.image_path))))
-            self.ui.label_image_size_value.setVisible(True)
-            self.ui.label_image_bootable_value.setText(str(is_bootable(config.image_path)))
-            self.ui.label_image_bootable_value.setVisible(True)
+                    self.ui.image_path.insert(str(config.image_path))
+                    self.ui.label_image_size_value.setText(str(bytes2human(iso_size(config.image_path))))
+                    self.ui.label_image_size_value.setVisible(True)
+                    self.ui.label_image_bootable_value.setText(str(is_bootable(config.image_path)))
+                    self.ui.label_image_bootable_value.setVisible(True)
 
-            if os.path.exists(config.image_path):
-                self.ui.label_image_type_value.setText(str(config.distro))
-                self.ui.label_image_type_value.setVisible(True)
-                if config.distro:
-                    per_availability = persistence.persistence_distro(config.distro, config.image_path)
-                    if per_availability is not None:
-                        config.persistence_available = True
-                        if config.usb_disk:
-                            per_max_size = persistence.max_disk_persistence(config.usb_disk)
-                            config.persistence_max_size = per_max_size
-                            log('Persistence Max Size: ' + str(bytes2human(per_max_size)))
-                    else:
-                        config.persistence_available = False
-                        log('Persistence support is not available for '
-                            + iso_name(config.image_path))
+                    if os.path.exists(config.image_path):
+                            self.ui.label_image_type_value.setText(str(config.distro))
+                            self.ui.label_image_type_value.setVisible(True)
+                            if config.distro:
+                                    per_availability = persistence.persistence_distro(config.distro, config.image_path)
+                                    if per_availability is not None:
+                                            config.persistence_available = True
+                                            if config.usb_disk:
+                                                    per_max_size = persistence.max_disk_persistence(config.usb_disk)
+                                                    config.persistence_max_size = per_max_size
+                                                    log(f'Persistence Max Size: {str(bytes2human(per_max_size))}')
+                                    else:
+                                            config.persistence_available = False
+                                            log('Persistence support is not available for '
+                                                + iso_name(config.image_path))
 
-                    self.ui_update_persistence()
-        else:
-            log("File not selected...")
+                                    self.ui_update_persistence()
+            else:
+                    log("File not selected...")
 
     def ui_update_persistence(self):
         #         log("===== config.persistence_available = " + str(config.persistence_available))
@@ -382,80 +381,89 @@ class AppGui(qemu.Qemu, Imager, QtWidgets.QMainWindow, Ui_MainWindow):
             log(o.getvalue())
 
     def install_syslinux_impl(self):
-        """
+            """
         Function to install syslinux on distro directory and on selected USB disks.
         :return:
         """
-        self.ui.statusbar.showMessage(str("Status: Installing Syslinux..."))
-        syslinux_distro_dir(config.usb_disk, config.image_path, config.distro)
-        syslinux_default(config.usb_disk)
-        replace_grub_binary()
-        update_distro_cfg_files(config.image_path, config.usb_disk,
-                    config.distro, config.persistence)
-        self.update_list_box(config.usb_disk)
-        self.ui.statusbar.showMessage("Status: Idle")
-        self.ui_disable_persistence()
-        log(iso_name(config.image_path) + ' has been successfully installed.')
-        QtWidgets.QMessageBox.information(self, 'Finished...',
-                                          iso_name(config.image_path) + ' has been successfully installed.')
+            self.ui.statusbar.showMessage("Status: Installing Syslinux...")
+            syslinux_distro_dir(config.usb_disk, config.image_path, config.distro)
+            syslinux_default(config.usb_disk)
+            replace_grub_binary()
+            update_distro_cfg_files(config.image_path, config.usb_disk,
+                        config.distro, config.persistence)
+            self.update_list_box(config.usb_disk)
+            self.ui.statusbar.showMessage("Status: Idle")
+            self.ui_disable_persistence()
+            log(f'{iso_name(config.image_path)} has been successfully installed.')
+            QtWidgets.QMessageBox.information(
+                self,
+                'Finished...',
+                f'{iso_name(config.image_path)} has been successfully installed.',
+            )
 
     def onInstall_syslinuxClick(self):
-        """
+            """
         Function to install syslinux/extlinux on selected USB disk, except extlinux.cfg and syslinux.cfg.
         :return:
         """
 
-        self.ui_disable_controls()
-        if not config.usb_disk:
-            log("ERROR Syslinux Install :  No USB device found.")
-            QtWidgets.QMessageBox.information(self, "No Device...",
-                                              "No USB device found.\n\nInsert USB and use Refresh USB button to detect USB.")
-        elif platform.system() == "Linux" or platform.system() == "Windows":
-            if self.ui.check_install_sys_all.isChecked() or self.ui.check_install_sys_only.isChecked():
-                if platform.system() == 'Linux' and config.usb_disk[-1].isdigit() is False:
-                    gen.log('Selected USB is a disk. Please select a disk partition from the drop down list')
-                    QtWidgets.QMessageBox.information(self, 'No Partition...!',
-                                                      'USB disk selected doesn\'t contain a partition.\n'
-                                                      'Please select the partition (ending '
-                                                      'with a digit eg. /dev/sdb1)\nfrom the drop down list.')
+            self.ui_disable_controls()
+            if not config.usb_disk:
+                    log("ERROR Syslinux Install :  No USB device found.")
+                    QtWidgets.QMessageBox.information(self, "No Device...",
+                                                      "No USB device found.\n\nInsert USB and use Refresh USB button to detect USB.")
+            elif platform.system() in ["Linux", "Windows"]:
+                    if self.ui.check_install_sys_all.isChecked() or self.ui.check_install_sys_only.isChecked():
+                            if platform.system() == 'Linux' and config.usb_disk[-1].isdigit() is False:
+                                    gen.log('Selected USB is a disk. Please select a disk partition from the drop down list')
+                                    QtWidgets.QMessageBox.information(self, 'No Partition...!',
+                                                                      'USB disk selected doesn\'t contain a partition.\n'
+                                                                      'Please select the partition (ending '
+                                                                      'with a digit eg. /dev/sdb1)\nfrom the drop down list.')
 
-                else:
-                    log("Installing default syslinux on " + config.usb_disk)
-                    ret = syslinux_default(config.usb_disk)
-                    if ret is True and \
-                       self.ui.check_install_sys_all.isChecked():
-                        log("Copying multibootusb directory to " +
-                            config.usb_mount)
-                        src_root = resource_path(
-                            os.path.join("data", "multibootusb"))
-                        cutoff = len(src_root) + 1
-                        dst_root = os.path.join(config.usb_mount,
-                                                "multibootusb")
-                        if not os.path.exists(dst_root):
-                            os.makedirs(dst_root)
-                        excludes = ['extlinux.cfg', 'syslinux.cfg']
-                        for dirpath, dirnames, filenames in os.walk(src_root):
-                            subdir_part = dirpath[cutoff:]
-                            dest_dir = os.path.join(dst_root, subdir_part)
-                            if not os.path.exists(dest_dir):
-                                os.makedirs(dest_dir)
-                            for f in filenames:
-                                dest_fp = os.path.join(dest_dir, f)
-                                if f in excludes and os.path.exists(dest_fp):
-                                    continue
-                                # log("Copying " + f)
-                                shutil.copy(os.path.join(dirpath, f),
-                                            dest_fp)
-                        QtWidgets.QMessageBox.information(self, 'Install Success...',
-                                                          'Syslinux installed successfully on ' + config.usb_disk)
-                    elif ret is False:
-                        QtWidgets.QMessageBox.information(self, 'Install error...',
-                                                          'Sorry. Syslinux failed to install on ' + config.usb_disk)
-            else:
-                QtWidgets.QMessageBox.information(self, 'No selection...',
-                                                  'Please select one of the option from above.')
+                            else:
+                                    log(f"Installing default syslinux on {config.usb_disk}")
+                                    ret = syslinux_default(config.usb_disk)
+                                    if          ret is True and \
+                                    self.ui.check_install_sys_all.isChecked():
+                                            log("Copying multibootusb directory to " +
+                                                config.usb_mount)
+                                            src_root = resource_path(
+                                                os.path.join("data", "multibootusb"))
+                                            cutoff = len(src_root) + 1
+                                            dst_root = os.path.join(config.usb_mount,
+                                                                    "multibootusb")
+                                            if not os.path.exists(dst_root):
+                                                os.makedirs(dst_root)
+                                            excludes = ['extlinux.cfg', 'syslinux.cfg']
+                                            for dirpath, dirnames, filenames in os.walk(src_root):
+                                                subdir_part = dirpath[cutoff:]
+                                                dest_dir = os.path.join(dst_root, subdir_part)
+                                                if not os.path.exists(dest_dir):
+                                                    os.makedirs(dest_dir)
+                                                for f in filenames:
+                                                    dest_fp = os.path.join(dest_dir, f)
+                                                    if f in excludes and os.path.exists(dest_fp):
+                                                        continue
+                                                    # log("Copying " + f)
+                                                    shutil.copy(os.path.join(dirpath, f),
+                                                                dest_fp)
+                                            QtWidgets.QMessageBox.information(
+                                                self,
+                                                'Install Success...',
+                                                f'Syslinux installed successfully on {config.usb_disk}',
+                                            )
+                                    elif ret is False:
+                                            QtWidgets.QMessageBox.information(
+                                                self,
+                                                'Install error...',
+                                                f'Sorry. Syslinux failed to install on {config.usb_disk}',
+                                            )
+                    else:
+                            QtWidgets.QMessageBox.information(self, 'No selection...',
+                                                              'Please select one of the option from above.')
 
-        self.ui_enable_controls()
+            self.ui_enable_controls()
 
 
     def onFsckClick(self, fsck_func):
@@ -490,95 +498,101 @@ class AppGui(qemu.Qemu, Imager, QtWidgets.QMainWindow, Ui_MainWindow):
                  cmd + ' said:\n' + str(msgout[0], 'utf-8'))
 
     def onedit_syslinux(self):
-        """
+            """
         Function to edit main syslinux.cfg file.
         :return:
         """
-        # Function to edit syslinux.cfg file on editors like gedit, notepad etc.
-        # Suggest me more editor which can be included in to this function.
-        sys_cfg_file = os.path.join(config.usb_mount, "multibootusb", "syslinux.cfg")
-        log("Locating " + sys_cfg_file)
-        editor = ''
-        if not os.path.exists(sys_cfg_file):
-            log("syslinux.cfg file not found...")
-            QtWidgets.QMessageBox.information(self, 'File not found...', 'Sorry. Unable to locate syslinux.cfg file.\n'
-                                                                         'You can only edit syslinux.cfg file generated by multibootusb.')
-        else:
-            if platform.system() == "Linux":
-                for e in config.editors_linux:
-                    if subprocess.call('which ' + e, shell=True) == 0:
-                        log("Editor found is " + e)
-                        editor = e
-                        break
-            elif platform.system() == "Windows":
-                for e in config.editors_win:
-                    if not shutil.which(e) is None:
-                        log("Editor found is " + e)
-                        editor = e
-                        break
-            if not editor:
-                QtWidgets.QMessageBox.information(self, 'Editor not found...',
-                                                  'Sorry. Installed editor is not supported by multibootusb\n'
-                                                  'Edit ' + sys_cfg_file + ' manually.\n')
+            # Function to edit syslinux.cfg file on editors like gedit, notepad etc.
+            # Suggest me more editor which can be included in to this function.
+            sys_cfg_file = os.path.join(config.usb_mount, "multibootusb", "syslinux.cfg")
+            log(f"Locating {sys_cfg_file}")
+            editor = ''
+            if not os.path.exists(sys_cfg_file):
+                    log("syslinux.cfg file not found...")
+                    QtWidgets.QMessageBox.information(self, 'File not found...', 'Sorry. Unable to locate syslinux.cfg file.\n'
+                                                                                 'You can only edit syslinux.cfg file generated by multibootusb.')
             else:
-                try:
-                    subprocess.Popen(editor + " '" + sys_cfg_file + "'", shell=True).pid
-                except OSError:
-                    QtWidgets.QMessageBox.warning(self, 'Error...',
-                                                  'Failed to open syslinux.cfg file.\n'
-                                                  'Edit syslinux.cfg file manually.\n')
+                    if platform.system() == "Linux":
+                            for e in config.editors_linux:
+                                    if (subprocess.call(f'which {e}',
+                                                        shell=True) == 0):
+                                            log(f"Editor found is {e}")
+                                            editor = e
+                                            break
+                    elif platform.system() == "Windows":
+                            for e in config.editors_win:
+                                    if shutil.which(e) is not None:
+                                            log(f"Editor found is {e}")
+                                            editor = e
+                                            break
+                    if not editor:
+                            QtWidgets.QMessageBox.information(self, 'Editor not found...',
+                                                              'Sorry. Installed editor is not supported by multibootusb\n'
+                                                              'Edit ' + sys_cfg_file + ' manually.\n')
+                    else:
+                            try:
+                                    subprocess.Popen(f"{editor} '{sys_cfg_file}'", shell=True).pid
+                            except OSError:
+                                QtWidgets.QMessageBox.warning(self, 'Error...',
+                                                              'Failed to open syslinux.cfg file.\n'
+                                                              'Edit syslinux.cfg file manually.\n')
 
     def OnUninstallClick(self):
-        """
+            """
         Triggers a function to uninstall a selected distro.
         :return:
         """
 
-        self.ui_disable_controls()
+            self.ui_disable_controls()
 
-        if self.ui.installed_distros.currentItem() is None:
-            log("Please select a distro from the list.")
-            QtWidgets.QMessageBox.information(self, 'No selection.', 'Please select a distro from the list.')
-            self.ui_enable_controls()
-        else:
-            config.uninstall_distro_dir_name = str(
-                self.ui.installed_distros.currentItem().text()).strip()
-            reply = QtWidgets.QMessageBox.question(
-                self, "Review selection...",
-                "Are you sure to uninstall " + config.uninstall_distro_dir_name,
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                QtWidgets.QMessageBox.No)
-
-            if reply == QtWidgets.QMessageBox.Yes:
-                if not os.path.exists(
-                        os.path.join(config.usb_mount, 'multibootusb',
-                                     config.uninstall_distro_dir_name)):
-                    log("Distro install directory not found. "
-                        "Just updating syslinux.cfg and grub.cfg.")
-                    uninstall_distro.update_sys_cfg_file(config.uninstall_distro_dir_name)
-                    uninstall_distro.update_grub_cfg_file(config.uninstall_distro_dir_name)
-                    self.uninstall_sys_file_update()
-                    # self.uninstall.update_sys_cfg_file()
+            if self.ui.installed_distros.currentItem() is None:
+                    log("Please select a distro from the list.")
+                    QtWidgets.QMessageBox.information(self, 'No selection.', 'Please select a distro from the list.')
                     self.ui_enable_controls()
-                else:
-                    self.progress_thread_uninstall.start()
             else:
-                self.ui_enable_controls()
+                    config.uninstall_distro_dir_name = str(
+                        self.ui.installed_distros.currentItem().text()).strip()
+                    reply = QtWidgets.QMessageBox.question(
+                        self,
+                        "Review selection...",
+                        f"Are you sure to uninstall {config.uninstall_distro_dir_name}",
+                        QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                        QtWidgets.QMessageBox.No,
+                    )
+
+                    if reply == QtWidgets.QMessageBox.Yes:
+                        if not os.path.exists(
+                                os.path.join(config.usb_mount, 'multibootusb',
+                                             config.uninstall_distro_dir_name)):
+                            log("Distro install directory not found. "
+                                "Just updating syslinux.cfg and grub.cfg.")
+                            uninstall_distro.update_sys_cfg_file(config.uninstall_distro_dir_name)
+                            uninstall_distro.update_grub_cfg_file(config.uninstall_distro_dir_name)
+                            self.uninstall_sys_file_update()
+                            # self.uninstall.update_sys_cfg_file()
+                            self.ui_enable_controls()
+                        else:
+                            self.progress_thread_uninstall.start()
+                    else:
+                        self.ui_enable_controls()
 
     def uninstall_sys_file_update(self):
-        """
+            """
         Function to remove and update uninstall distro text.
         :return:
         """
 
-        # This function is already called from 'do_uninstall_distro()'
-        # update_sys_cfg_file(config.uninstall_distro_dir_name)
+            # This function is already called from 'do_uninstall_distro()'
+            # update_sys_cfg_file(config.uninstall_distro_dir_name)
 
-        self.update_list_box(config.usb_mount)
-        self.ui.statusbar.showMessage("Status: Idle")
-        QtWidgets.QMessageBox.information(self, 'Uninstall Complete...',
-                                          config.uninstall_distro_dir_name + ' has been successfully removed.')
-        self.ui_enable_controls()
+            self.update_list_box(config.usb_mount)
+            self.ui.statusbar.showMessage("Status: Idle")
+            QtWidgets.QMessageBox.information(
+                self,
+                'Uninstall Complete...',
+                f'{config.uninstall_distro_dir_name} has been successfully removed.',
+            )
+            self.ui_enable_controls()
 
     def onCreateClick(self):
         installing = False
@@ -853,40 +867,41 @@ Proceed with installation?'''.lstrip() % \
 
     def update_target_info(self):
 
-        usb_total_size= str(usb.bytes2human(config.usb_details.get('size_total', "")))
-        usb_free_size= str(usb.bytes2human(config.usb_details.get('size_free', "")))
-        config.persistence_max_size = persistence.max_disk_persistence(config.usb_disk)
-        config.usb_mount = config.usb_details.get('mount_point', "")
-        self.ui.usb_dev.setText(osdriver.usb_disk_desc(config.usb_disk))
+            usb_total_size= str(usb.bytes2human(config.usb_details.get('size_total', "")))
+            usb_free_size= str(usb.bytes2human(config.usb_details.get('size_free', "")))
+            config.persistence_max_size = persistence.max_disk_persistence(config.usb_disk)
+            config.usb_mount = config.usb_details.get('mount_point', "")
+            self.ui.usb_dev.setText(osdriver.usb_disk_desc(config.usb_disk))
 
-        self.ui.usb_vendor.setText(config.usb_details.get('vendor', ""))
-        self.ui.usb_model.setText(config.usb_details.get('model', ""))
-        self.ui.usb_size.setText('Free :: ' + usb_free_size + ' / Total :: ' + usb_total_size)
-        self.ui.usb_mount.setText(config.usb_details.get('mount_point', ""))
-        self.ui.usb_type.setText(config.usb_details.get('devtype', ""))
-        self.ui.usb_fs.setText(config.usb_details.get('file_system', ""))
+            self.ui.usb_vendor.setText(config.usb_details.get('vendor', ""))
+            self.ui.usb_model.setText(config.usb_details.get('model', ""))
+            self.ui.usb_size.setText(
+                f'Free :: {usb_free_size} / Total :: {usb_total_size}')
+            self.ui.usb_mount.setText(config.usb_details.get('mount_point', ""))
+            self.ui.usb_type.setText(config.usb_details.get('devtype', ""))
+            self.ui.usb_fs.setText(config.usb_details.get('file_system', ""))
 
     def closeEvent(self, event):
-        """
+            """
         To capture the main close event.
         :param event: Close event.
         :return:
         """
-        if config.process_exist == None:
-            event.accept()
-        else:
-            reply = QtWidgets.QMessageBox.question(self, 'Exit MultiBootUSB...',
-                                                   "A process is still running.\n"
-                                                   "Do you really want to quit multibootusb?",
-                                                   QtWidgets.QMessageBox.Yes,
-                                                   QtWidgets.QMessageBox.No)
-            if reply == QtWidgets.QMessageBox.Yes:
-                log("Closing multibootusb...")
-                event.accept()
-                sys.exit(0)
+            if config.process_exist is None:
+                    event.accept()
             else:
-                log("Close event cancelled.")
-                event.ignore()
+                    reply = QtWidgets.QMessageBox.question(self, 'Exit MultiBootUSB...',
+                                                           "A process is still running.\n"
+                                                           "Do you really want to quit multibootusb?",
+                                                           QtWidgets.QMessageBox.Yes,
+                                                           QtWidgets.QMessageBox.No)
+                    if reply == QtWidgets.QMessageBox.Yes:
+                        log("Closing multibootusb...")
+                        event.accept()
+                        sys.exit(0)
+                    else:
+                        log("Close event cancelled.")
+                        event.ignore()
 
 class GuiInstallProgress(QtCore.QThread):
     """
@@ -903,32 +918,33 @@ class GuiInstallProgress(QtCore.QThread):
         self.wait()
 
     def run(self):
-        install_dir = os.path.join(config.usb_mount, "multibootusb", iso_basename(config.image_path))
-        self.thread = GenericThread(install_progress)
-        status_text = "Status: "
-        self.thread.start()
-        while self.thread.isRunning():
-            if config.status_text.strip():
-                config.status_text = config.status_text.replace(install_dir + "/", "Extracting ")
-            self.update.emit(config.percentage)
-            self.status.emit(config.status_text)
-            if not self.thread.isFinished() and config.percentage == 100:
-                config.status_text = "Status: Please wait..."
-                self.status.emit("Status: Please wait...")
-            time.sleep(0.1)
+            install_dir = os.path.join(config.usb_mount, "multibootusb", iso_basename(config.image_path))
+            self.thread = GenericThread(install_progress)
+            status_text = "Status: "
+            self.thread.start()
+            while self.thread.isRunning():
+                    if config.status_text.strip():
+                            config.status_text = config.status_text.replace(
+                                f"{install_dir}/", "Extracting ")
+                    self.update.emit(config.percentage)
+                    self.status.emit(config.status_text)
+                    if not self.thread.isFinished() and config.percentage == 100:
+                        config.status_text = "Status: Please wait..."
+                        self.status.emit("Status: Please wait...")
+                    time.sleep(0.1)
 
-        self.update.emit(100)
-        self.update.emit(0)
+            self.update.emit(100)
+            self.update.emit(0)
 
-        self.status.emit("Status: Installing boot loader...")
+            self.status.emit("Status: Installing boot loader...")
 
-        if self.thread.isFinished():
-            config.status_text = ""
-            self.finished.emit()
+            if self.thread.isFinished():
+                config.status_text = ""
+                self.finished.emit()
 
-        log("Distro extraction completed...")
+            log("Distro extraction completed...")
 
-        return
+            return
 
 
 class GuiUninstallProgress(QtCore.QThread):
@@ -1044,17 +1060,17 @@ def show_admin_info():
 
 
 def main_gui():
-    app = QtWidgets.QApplication(sys.argv)
-    #    ui_about = Ui_About()
-    #    ui = Ui_MainWindow()
+        app = QtWidgets.QApplication(sys.argv)
+            #    ui_about = Ui_About()
+            #    ui = Ui_MainWindow()
 
-    if platform.system() == 'Linux' and os.getuid() != 0:
-        show_admin_info()
-        sys.exit(2)
+        if platform.system() == 'Linux' and os.getuid() != 0:
+                show_admin_info()
+                sys.exit(2)
 
-    else:
-        window = AppGui()
-        window.show()
-        window.setWindowTitle("MultiBootUSB - " + mbusb_version())
-        window.setWindowIcon(QtGui.QIcon(resource_path(os.path.join("data", "tools", "multibootusb.png"))))
-    sys.exit(app.exec_())
+        else:
+                window = AppGui()
+                window.show()
+                window.setWindowTitle(f"MultiBootUSB - {mbusb_version()}")
+                window.setWindowIcon(QtGui.QIcon(resource_path(os.path.join("data", "tools", "multibootusb.png"))))
+        sys.exit(app.exec_())

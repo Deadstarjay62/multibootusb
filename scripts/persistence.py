@@ -31,12 +31,11 @@ def max_disk_persistence(usb_disk):
     config.usb_label = usb_details['label']
 
     size_free = usb_details['size_free']
-    if usb_details['file_system'] in ['vfat', 'FAT32']:
-        _max_size = min(fat_max_size, size_free)
-    else:
-        _max_size = size_free
-
-    return _max_size
+    return (
+        min(fat_max_size, size_free)
+        if usb_details['file_system'] in ['vfat', 'FAT32']
+        else size_free
+    )
 
 def persistence_distro(distro, iso_link):
     """
@@ -47,13 +46,16 @@ def persistence_distro(distro, iso_link):
     assert distro is not None
     assert iso_link is not None
 
-#     iso_size = iso.iso_size(iso_link)
-
-    if distro in ["ubuntu", "debian", "debian-install", "fedora", "centos"]:
-        gen.log("Persistence option is available.")
-        return distro
-    else:
+    if distro not in [
+        "ubuntu",
+        "debian",
+        "debian-install",
+        "fedora",
+        "centos",
+    ]:
         return None
+    gen.log("Persistence option is available.")
+    return distro
 
 def create_persistence_using_mkfs(persistence_fname, persistence_size):
     persistence_path = os.path.join(config.usb_mount, 'multibootusb',
@@ -66,20 +68,20 @@ def create_persistence_using_mkfs(persistence_fname, persistence_size):
         mkfs = gen.resource_path(mke2fs_relative_path)
         dd_relative_path = os.path.join(tools_dir, 'dd', 'dd.exe')
         dd = gen.resource_path(dd_relative_path)
-        persistence_mkfs_cmd = 'echo y|' + mkfs + ' -b 1024 ' + \
-                               '-L ' + volume_name + ' ' + \
-                               persistence_path
+        persistence_mkfs_cmd = (
+            f'echo y|{mkfs} -b 1024 -L {volume_name} {persistence_path}'
+        )
     else:
         mkfs = 'mkfs.ext3'
         dd = 'dd'
-        persistence_mkfs_cmd = mkfs + ' -F ' + persistence_path
+        persistence_mkfs_cmd = f'{mkfs} -F {persistence_path}'
 
     mbytes =  persistence_size / 1024 / 1024
-    persistence_dd_cmd = dd + ' if=/dev/zero ' + \
-                         'of=' + persistence_path + \
-                         ' bs=1M count=' + str(int(mbytes))
+    persistence_dd_cmd = (
+        f'{dd} if=/dev/zero of={persistence_path} bs=1M count={int(mbytes)}'
+    )
 
-    gen.log('Executing ==>' + persistence_dd_cmd)
+    gen.log(f'Executing ==>{persistence_dd_cmd}')
     config.status_text = 'Creating persistence file...'
 
     if subprocess.call(persistence_dd_cmd, shell=True) == 0:
@@ -88,7 +90,7 @@ def create_persistence_using_mkfs(persistence_fname, persistence_size):
     if config.distro != 'fedora':
         gen.log('Applying filesystem to persistence file...')
         config.status_text = 'Applying filesystem to persistence file. Please wait...'
-        gen.log('Executing ==> ' + persistence_mkfs_cmd)
+        gen.log(f'Executing ==> {persistence_mkfs_cmd}')
         config.status_text = 'Applying filesystem to persistence file...'
         if subprocess.call(persistence_mkfs_cmd, shell=True) == 0:
             gen.log("\nSuccessfully applied filesystem...\n")
@@ -112,24 +114,24 @@ def create_persistence_using_resize2fs(persistence_fname, persistence_size):
     config.status_text = 'Copying persistence file...'
     persistence_gz = gen.resource_path(
         os.path.join(tools_dir, 'persistence.gz'))
-    _7zip_cmd_base = [_7zip_exe, 'x', '-o' + outdir]
+    _7zip_cmd_base = [_7zip_exe, 'x', f'-o{outdir}']
     for more_opts in ( ['-y'], ['-aoa'] ):
         _7zip_cmd = _7zip_cmd_base + more_opts + [persistence_gz]
         if subprocess.call(_7zip_cmd)==0:
             if not os.path.exists(persistence_path):
-                gen.log("%s has failed to create the persistence file." %
-                        _7zip_cmd)
+                gen.log(f"{_7zip_cmd} has failed to create the persistence file.")
                 continue
-            gen.log("Generated 'persistence' file in '%s'" % outdir)
+            gen.log(f"Generated 'persistence' file in '{outdir}'")
             if persistence_fname != 'persistence':
                 os.rename(os.path.join(outdir, 'persistence'),
                           persistence_path)
-                gen.log("Renamed to '%s'." % persistence_path)
+                gen.log(f"Renamed to '{persistence_path}'.")
             break
-        gen.log("%s has failed with non-zero exit status." % _7zip_cmd)
+        gen.log(f"{_7zip_cmd} has failed with non-zero exit status.")
     else:
-        gen.log("Couldn't generate persistence file '%s' by any means." %
-                persistence_path)
+        gen.log(
+            f"Couldn't generate persistence file '{persistence_path}' by any means."
+        )
         return
 
     current_size = os.stat(persistence_path)[stat.ST_SIZE]
@@ -141,7 +143,7 @@ def create_persistence_using_resize2fs(persistence_fname, persistence_size):
         with open(persistence_path, 'ab') as f:
             _1M_block = b'\0' * (1024*1024)
             bytes_left = persistence_size - current_size
-            while 0<bytes_left:
+            while bytes_left > 0:
                 block_size = min(1024*1024, bytes_left)
                 f.write(_1M_block[:block_size])
                 bytes_left -= block_size
@@ -156,22 +158,25 @@ def create_persistence_using_resize2fs(persistence_fname, persistence_size):
         gen.log("Successfully resized the persistence file.")
 
 creator_dict = {
-    'ubuntu' : (create_persistence_using_mkfs,
-                lambda C: ('casper-rw',)),
-    'debian' : (create_persistence_using_resize2fs,
-                lambda C: ('persistence',)),
-    'debian-install' : (
+    'ubuntu': (create_persistence_using_mkfs, lambda C: ('casper-rw',)),
+    'debian': (create_persistence_using_resize2fs, lambda C: ('persistence',)),
+    'debian-install': (
         create_persistence_using_resize2fs,
-        lambda C: ('persistence',)),
-    'fedora' : (
+        lambda C: ('persistence',),
+    ),
+    'fedora': (
         create_persistence_using_mkfs,
-        lambda C: (os.path.join(
-            'LiveOS', 'overlay-%s-%s' % (C.usb_label, C.usb_uuid)),)),
-    'centos' : (
+        lambda C: (
+            os.path.join('LiveOS', f'overlay-{C.usb_label}-{C.usb_uuid}'),
+        ),
+    ),
+    'centos': (
         create_persistence_using_mkfs,
-        lambda C: (os.path.join(
-            'LiveOS', 'overlay-%s-%s' % (C.usb_label, C.usb_uuid)),)),
-    }
+        lambda C: (
+            os.path.join('LiveOS', f'overlay-{C.usb_label}-{C.usb_uuid}'),
+        ),
+    ),
+}
 
 def detect_missing_tools(distro):
     tools_dir = os.path.join('data', 'tools')
@@ -193,15 +198,15 @@ def detect_missing_tools(distro):
                 p = subprocess.Popen([tool], stdout=devnull, stderr=devnull)
                 p.communicate()
     except FileNotFoundError:  # Windows
-        return "'%s.exe' is not installed or not available for use." % tool
-    except OSError:            # Linux
-        return "'%s' is not installed or not available for use." % tool
+        return f"'{tool}.exe' is not installed or not available for use."
+    except OSError:        # Linux
+        return f"'{tool}' is not installed or not available for use."
     return None
 
 def create_persistence():
     x = creator_dict.get(config.distro)
     if x is None:
-        gen.log("Persistence is not supported for '%s'." % config.distro)
+        gen.log(f"Persistence is not supported for '{config.distro}'.")
         return False
     creator_func, args_generator = x
     args = args_generator(config) + (config.persistence,)

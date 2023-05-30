@@ -49,11 +49,8 @@ def check_admin():
 def cli_install_distro():
     log('Starting multibootusb from Command line...')
     if usb.is_block(config.usb_disk) is False:
-        log(config.usb_disk + ' is not a valid device partition...')
+        log(f'{config.usb_disk} is not a valid device partition...')
         exit(1)
-    #elif integrity(config.image_path) is not True:
-    #    log(config.image_path + ' failed to pass integrity check...')
-    #    exit(1)
     else:
         try:
             usb_details = details(config.usb_disk)
@@ -66,9 +63,9 @@ def cli_install_distro():
         # Get the GPT status of the disk and store it on a variable
         usb.gpt_device(config.usb_disk)
         prepare_mbusb_host_dir()
-        if isinstance(config.image_path, str) is True:
+        if isinstance(config.image_path, str):
             iso_install(config.image_path)
-        elif isinstance(config.image_path, list) is True:
+        elif isinstance(config.image_path, list):
             # Transfer the list to other variable and loop through iso image
             iso_list = config.image_path
             for config.image_path in iso_list:
@@ -83,10 +80,11 @@ def iso_install(iso_image):
     """
     if os.path.exists(os.path.join(config.usb_mount, 'multibootusb',
                                    iso.iso_basename(iso_image))):
-        log("'%s' is already installed. Skipping installation." %
-            iso.iso_basename(iso_image))
+        log(
+            f"'{iso.iso_basename(iso_image)}' is already installed. Skipping installation."
+        )
     elif size_not_enough(iso_image, config.usb_disk) is True:
-        log(config.usb_disk + ' does not have enough space...')
+        log(f'{config.usb_disk} does not have enough space...')
     else:
         clean_iso_cfg_ext_dir( # Need to be cleaned everytime
             os.path.join(multibootusb_host_dir(), "iso_cfg_ext_dir"))
@@ -95,9 +93,9 @@ def iso_install(iso_image):
         if _distro is not None:
             log('Initiating installation process for ' +
                  iso.iso_basename(iso_image))
-            log('Detected distro type is    :' + _distro)
+            log(f'Detected distro type is    :{_distro}')
             log('\nSelected ISO is          :' + quote(iso_name(iso_image)))
-            log('Selected target device is  :' + quote(config.usb_disk), '\n')
+            log(f'Selected target device is  :{quote(config.usb_disk)}', '\n')
             if config.yes is not True:
                 log('Please confirm the option.')
                 log('Y/y/Yes/yes/YES or N/n/No/no/NO')
@@ -105,7 +103,7 @@ def iso_install(iso_image):
                     log('Not proceeding. User cancelled the operation.')
                     return
             else:
-                log('Skipping user confirmation for ' + iso_image)
+                log(f'Skipping user confirmation for {iso_image}')
             config.distro = _distro
             copy_mbusb_dir_usb(config.usb_disk)
             install_progress()
@@ -114,7 +112,7 @@ def iso_install(iso_image):
             replace_grub_binary()
             update_distro_cfg_files(iso_image, config.usb_disk, _distro,
                                     config.persistence)
-            log('Finished installing ' + iso.iso_basename(iso_image))
+            log(f'Finished installing {iso.iso_basename(iso_image)}')
         else:
             log('\n\nSorry ' + iso_name(iso_image) +
                  ' is not supported at the moment.\n'
@@ -125,7 +123,7 @@ def cli_uninstall_distro():
     distro_list = install_distro_list()
     if distro_list is not None:
         for index, _distro_dir in enumerate(distro_list):
-            log(str(index) + '  --->>  ' + _distro_dir)
+            log(f'{str(index)}  --->>  {_distro_dir}')
         user_input = read_input_uninstall()
         if user_input is not False:
             for index, _distro_dir in enumerate(distro_list):
@@ -133,7 +131,7 @@ def cli_uninstall_distro():
                     config.uninstall_distro_dir_name = _distro_dir
                     do_uninstall_distro(_distro_dir, _distro_dir)
     else:
-        log('No distro installed on ' + config.usb_disk)
+        log(f'No distro installed on {config.usb_disk}')
 
 
 def cli_dd():
@@ -149,24 +147,29 @@ def cli_dd():
     if not os.path.exists(config.image_path):
         log('ISO image path does not exist. Please correct the path.')
         sys.exit(2)
+    elif config.yes is True:
+        log('\nAuto install is not recommended in direct writing method. Please choose without \'-y\' option.\n')
+        sys.exit(2)
+
     else:
-        if config.yes is not True:
-            log('Initiating destructive writing process for ' + iso.iso_basename(config.image_path))
-            log('\nSelected ISO is          :' + quote(iso_name(config.image_path)))
-            log('Selected target device is  :' + quote(config.usb_disk))
-            log('Writing ISO directly to target USB disk ' + quote(config.usb_disk) + ' will DESTROY ALL DATA.' + '\n')
-            log('Please confirm the option.')
-            log('Y/y/Yes/yes/YES or N/n/No/no/NO')
-            if read_input_yes() is True:
-                if platform.system() == 'Linux':
-                        imager.dd_linux()
-                else:
-                    imager.dd_win()
+        log(
+            f'Initiating destructive writing process for {iso.iso_basename(config.image_path)}'
+        )
+        log('\nSelected ISO is          :' + quote(iso_name(config.image_path)))
+        log(f'Selected target device is  :{quote(config.usb_disk)}')
+        log(
+            f'Writing ISO directly to target USB disk {quote(config.usb_disk)} will DESTROY ALL DATA.'
+            + '\n'
+        )
+        log('Please confirm the option.')
+        log('Y/y/Yes/yes/YES or N/n/No/no/NO')
+        if read_input_yes() is True:
+            if platform.system() == 'Linux':
+                    imager.dd_linux()
             else:
-                log('Operation cancelled by user. Exiting...')
-                sys.exit(2)
+                imager.dd_win()
         else:
-            log('\nAuto install is not recommended in direct writing method. Please choose without \'-y\' option.\n')
+            log('Operation cancelled by user. Exiting...')
             sys.exit(2)
 
 
@@ -183,15 +186,15 @@ def cli_install_syslinux():
 
     if config.yes is not True:
         log('\nInitiating process for installing syslinux on ' + config.usb_disk)
-        log('Selected target device is  : ' + quote(config.usb_disk))
+        log(f'Selected target device is  : {quote(config.usb_disk)}')
         log('Syslinux install directory :  ' + quote('multibootusb'))
         log('Please confirm the option.')
         log('Y/y/Yes/yes/YES or N/n/No/no/NO')
         if read_input_yes() is True:
             if syslinux.syslinux_default(config.usb_disk) is True:
-                log('Syslinux successfully installed on ' + config.usb_disk)
+                log(f'Syslinux successfully installed on {config.usb_disk}')
             else:
-                log('Failed to install syslinux on ' + config.usb_disk)
+                log(f'Failed to install syslinux on {config.usb_disk}')
         else:
             log('Operation cancelled by user. Exiting...')
             sys.exit(2)
@@ -199,7 +202,7 @@ def cli_install_syslinux():
         log('\nSkipping user input and installing syslinux on ' +
             config.usb_disk)
         if syslinux.syslinux_default(config.usb_disk) is True:
-            log('Syslinux successfully installed on ' + config.usb_disk)
+            log(f'Syslinux successfully installed on {config.usb_disk}')
         else:
-            log('Failed to install syslinux on ' + config.usb_disk)
+            log(f'Failed to install syslinux on {config.usb_disk}')
         sys.exit(2)

@@ -13,7 +13,7 @@ import urllib.error
 import urllib.parse
 import subprocess
 
-if not os.getuid() == 0:
+if os.getuid() != 0:
     print("You must run this file with admin privilege.")
     print("Try sudo ./install.py")
     sys.exit(0)
@@ -45,13 +45,12 @@ class Install():
             elif self.internet_on() is True:
                 if self.install_dependency_package() is not True:
                     print("Error installing dependency packages.")
-                else:
-                    if subprocess.call("python3 setup.py install --record ./.install_files.txt", shell=True) == 0:
-                        print("Installation finished.")
-                        print("Find multibootusb under system menu or run from terminal  using the following command...")
-                        print("\nmultibootusb\n")
-                        print("You can uninstall multibootusb at any time using follwing command (with root/sudo previlage)")
-                        print("\nsudo ./uninstall.sh\n")
+                elif subprocess.call("python3 setup.py install --record ./.install_files.txt", shell=True) == 0:
+                    print("Installation finished.")
+                    print("Find multibootusb under system menu or run from terminal  using the following command...")
+                    print("\nmultibootusb\n")
+                    print("You can uninstall multibootusb at any time using follwing command (with root/sudo previlage)")
+                    print("\nsudo ./uninstall.sh\n")
 
     @staticmethod
     def internet_on():
@@ -71,11 +70,11 @@ class Install():
         pac_managers = ["pacman", "yum", "apt-get", "zypper", "urpmi"]
         result = "0"
         for pac_man in pac_managers:
-            if subprocess.call("which " + pac_man, shell=True) == 0:
+            if subprocess.call(f"which {pac_man}", shell=True) == 0:
                 result = "1"
                 return True
 
-        if not result == "1":
+        if result != "1":
             return False
 
 

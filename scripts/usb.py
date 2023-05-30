@@ -33,7 +33,7 @@ if platform.system() == 'Windows':
 class PartitionNotMounted(Exception):
 
     def __init__(self, partition):
-        self.message = 'Partition is not mounted: {}'.format(partition)
+        self.message = f'Partition is not mounted: {partition}'
 
 
 def is_block(usb_disk):
@@ -47,10 +47,7 @@ def is_block(usb_disk):
         if len(usb_disk) != 9:
             return False
     elif platform.system() == 'Windows':
-        if len(usb_disk) != 2:
-            return False
-        else:
-            return True
+        return len(usb_disk) == 2
     try:
         mode = os.stat(usb_disk).st_mode
         gen.log(mode)
@@ -118,10 +115,9 @@ def list_devices(fixed=False):
                     if device.get('DEVTYPE') in ['disk', 'partition'] and device.get('ID_PART_TABLE_TYPE'):
                         devices.append(str(device.get('DEVNAME')))
                         gen.log("\t" + device.get('DEVNAME'))
-                else:
-                    if device.get('ID_BUS') in ['usb'] and device.get('ID_PART_TABLE_TYPE'):
-                        devices.append(str(device.get('DEVNAME')))
-                        gen.log("\t" + device.get('DEVNAME'))
+                elif device.get('ID_BUS') in ['usb'] and device.get('ID_PART_TABLE_TYPE'):
+                    devices.append(str(device.get('DEVNAME')))
+                    gen.log("\t" + device.get('DEVNAME'))
 
         except Exception as e:
             gen.log(e)
@@ -141,13 +137,12 @@ def list_devices(fixed=False):
                             device = drive_info.get('Device')
                             device = bytearray(device).replace(b'\x00', b'').decode('utf-8')
                             devices.append(device)
-                    else:
-                        if drive_info.get('IdUsage') == "filesystem" and not drive_info.get(
+                    elif drive_info.get('IdUsage') == "filesystem" and not drive_info.get(
                                 'HintSystem') and not drive_info.get('ReadOnly'):
-                            device = drive_info.get('Device')
-                            device = bytearray(device).replace(
-                                b'\x00', b'').decode('utf-8')
-                            devices.append(device)
+                        device = drive_info.get('Device')
+                        device = bytearray(device).replace(
+                            b'\x00', b'').decode('utf-8')
+                        devices.append(device)
 
             except Exception as e:
                 gen.log(e, error=True)
@@ -188,13 +183,12 @@ def list_devices(fixed=False):
                             for d in volumes.get(pdrive.Index, [])])
     if devices:
         return devices
-    else:
-        gen.log("No USB device found...")
-        return None
+    gen.log("No USB device found...")
+    return None
 
 
 def parent_partition(partition):
-    exploded = [c for c in partition]
+    exploded = list(partition)
     while exploded[-1].isdigit():
         exploded.pop()
     return ''.join(exploded)
@@ -218,13 +212,12 @@ def details_udev(usb_disk_part):
     try:
         device = pyudev.Device.from_device_file(context, usb_disk_part)
     except:
-        gen.log("ERROR: Unknown disk/partition (%s)" % str(usb_disk_part))
+        gen.log(f"ERROR: Unknown disk/partition ({str(usb_disk_part)})")
         return None
 
     try:
         ppart = parent_partition(usb_disk_part)
-        fdisk_cmd_out = subprocess.check_output(
-            'LANG=C fdisk -l ' + ppart, shell=True)
+        fdisk_cmd_out = subprocess.check_output(f'LANG=C fdisk -l {ppart}', shell=True)
         partition_prefix = bytes(usb_disk_part, 'utf-8') + b' '
         out = []
         for l in fdisk_cmd_out.split(b'\n'):
@@ -237,18 +230,21 @@ def details_udev(usb_disk_part):
         fdisk_cmd_out = b'\n'.join(out)
 
     except subprocess.CalledProcessError:
-        gen.log("ERROR: fdisk failed on disk/partition (%s)" %
-                str(usb_disk_part))
+        gen.log(f"ERROR: fdisk failed on disk/partition ({str(usb_disk_part)})")
         return None
 
-    detected_type = None
-    for keyword, ptype in [(b'Extended', 'extended partition'),
-                           (b'swap', 'swap partition'),
-                           (b'Linux LVM', 'lvm partition'),]:
-        if keyword in fdisk_cmd_out:
-            detected_type = ptype
-            break
-    if detected_type:
+    if detected_type := next(
+        (
+            ptype
+            for keyword, ptype in [
+                (b'Extended', 'extended partition'),
+                (b'swap', 'swap partition'),
+                (b'Linux LVM', 'lvm partition'),
+            ]
+            if keyword in fdisk_cmd_out
+        ),
+        None,
+    ):
         mount_point = ''
         uuid = ''
         file_system = ''
@@ -278,18 +274,20 @@ def details_udev(usb_disk_part):
         model = device.get('ID_MODEL') or ""
         devtype = "disk"
 
-    if mount_point not in ["", "None"]:
-        size_total = shutil.disk_usage(mount_point)[0]
-        size_used = shutil.disk_usage(mount_point)[1]
-        size_free = shutil.disk_usage(mount_point)[2]
-
-    else:
-        fdisk_cmd = 'LANG=C fdisk -l ' + usb_disk_part + \
-          ' | grep "^Disk /" | sed -re "s/.*\s([0-9]+)\sbytes.*/\\1/"'
+    if mount_point in ["", "None"]:
+        fdisk_cmd = (
+            f'LANG=C fdisk -l {usb_disk_part}'
+            + ' | grep "^Disk /" | sed -re "s/.*\s([0-9]+)\sbytes.*/\\1/"'
+        )
         size_total = subprocess.check_output(fdisk_cmd, shell=True).strip()
         size_used = 0
         size_free = 0
         mount_point = ""
+
+    else:
+        size_total = shutil.disk_usage(mount_point)[0]
+        size_used = shutil.disk_usage(mount_point)[1]
+        size_free = shutil.disk_usage(mount_point)[2]
 
     return {'uuid': uuid, 'file_system': file_system, 'label': label, 'mount_point': mount_point,
             'size_total': size_total, 'size_used': size_used, 'size_free': size_free,
@@ -312,7 +310,10 @@ def details_udisks2(usb_disk_part):
     label = ''
     devtype = "disk"
 
-    bd = bus.get_object('org.freedesktop.UDisks2', '/org/freedesktop/UDisks2/block_devices%s'%usb_disk_part[4:])
+    bd = bus.get_object(
+        'org.freedesktop.UDisks2',
+        f'/org/freedesktop/UDisks2/block_devices{usb_disk_part[4:]}',
+    )
     device = bd.Get('org.freedesktop.UDisks2.Block', 'Device', dbus_interface='org.freedesktop.DBus.Properties')
     device = bytearray(device).replace(b'\x00', b'').decode('utf-8')
     if device[-1].isdigit() is True:
@@ -341,14 +342,14 @@ def details_udisks2(usb_disk_part):
     try:
         vendor = bd1.Get('org.freedesktop.UDisks2.Drive', 'Vendor', dbus_interface='org.freedesktop.DBus.Properties')
     except:
-        vendor = str('No_Vendor')
+        vendor = 'No_Vendor'
     try:
         model = bd1.Get('org.freedesktop.UDisks2.Drive', 'Model', dbus_interface='org.freedesktop.DBus.Properties')
     except:
-        model = str('No_Model')
-    if not mount_point == "No_Mount":
-            size_total, size_used, size_free = \
-                        shutil.disk_usage(mount_point)[:3]
+        model = 'No_Model'
+    if mount_point != "No_Mount":
+        size_total, size_used, size_free = \
+                    shutil.disk_usage(mount_point)[:3]
     else:
         raise PartitionNotMounted(usb_disk_part)
 
@@ -368,14 +369,15 @@ def bytes2human(n):
     except:
         return 'Unknown'
     symbols = ('K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
-    prefix = {}
-    for i, s in enumerate(symbols):
-        prefix[s] = 1 << (i + 1) * 10
-    for s in reversed(symbols):
-        if n >= prefix[s]:
-            value = float(n) / prefix[s]
-            return '%.1f%s' % (value, s)
-    return "%sB" % n
+    prefix = {s: 1 << (i + 1) * 10 for i, s in enumerate(symbols)}
+    return next(
+        (
+            '%.1f%s' % (float(n) / prefix[s], s)
+            for s in reversed(symbols)
+            if n >= prefix[s]
+        ),
+        f"{n}B",
+    )
 
 
 def gpt_device(dev_name):
@@ -386,7 +388,7 @@ def gpt_device(dev_name):
     """
     is_gpt = osdriver.gpt_device(dev_name)
     config.usb_gpt = is_gpt
-    gen.log('Device %s is %s disk.' % (dev_name, is_gpt and 'a GPT' or 'an MBR'))
+    gen.log(f"Device {dev_name} is {is_gpt and 'a GPT' or 'an MBR'} disk.")
 
 
 def unmount(usb_disk):
@@ -399,8 +401,7 @@ class RemountError(Exception):
         self.caught_exception = caught_exception
 
     def __str__(self):
-        return "%s due to '%s'" % (
-            self.__class__.__name__, self.caught_exception)
+        return f"{self.__class__.__name__} due to '{self.caught_exception}'"
 
 
 class UnmountError(RemountError):
@@ -435,15 +436,15 @@ class UnmountedContext:
             return
         self.assert_no_access()
         try:
-            gen.log("Unmounting %s" % self.usb_disk)
+            gen.log(f"Unmounting {self.usb_disk}")
             os.sync() # This is needed because UDISK.unmount() can timeout.
             UDISKS.unmount(self.usb_disk)
         except dbus.exceptions.DBusException as e:
-            gen.log("Unmount of %s has failed." % self.usb_disk)
+            gen.log(f"Unmount of {self.usb_disk} has failed.")
             # This may get the partition mounted. Don't call!
             # self.exit_callback(details(self.usb_disk))
             raise UnmountError(e)
-        gen.log("Unmounted %s" % self.usb_disk)
+        gen.log(f"Unmounted {self.usb_disk}")
         return self
 
     def __exit__(self, type_, value, traceback_):
@@ -457,7 +458,7 @@ class UnmountedContext:
             self.exit_callback(details(self.usb_disk))
         except dbus.exceptions.DBusException as e:
             raise MountError(e)
-        gen.log("Mounted %s" % (self.usb_disk))
+        gen.log(f"Mounted {self.usb_disk}")
 
 
 def check_vfat_filesystem(usb_disk, result=None):

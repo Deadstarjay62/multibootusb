@@ -21,7 +21,7 @@ def de_mangle_mountpoint(raw):
 
 def node_mountpoint(node):
 
-    for line in open('/proc/mounts').readlines():
+    for line in open('/proc/mounts'):
         line = line.split()
         if line[0] == node:
             return de_mangle_mountpoint(line[1])
@@ -59,8 +59,7 @@ class UDisks(object):
                         devpath), 'org.freedesktop.UDisks.Device')
 
     def mount(self, device_node_path, remounted=None):
-        mp = node_mountpoint(str(device_node_path))
-        if mp:
+        if mp := node_mountpoint(str(device_node_path)):
             return mp
         d = self.device(device_node_path)
         r = str(d.FilesystemMount(
@@ -106,8 +105,10 @@ class UDisks2(object):
         devname = device_node_path.split('/')[-1]
 
         # First we try a direct object path
-        bd = self.bus.get_object('org.freedesktop.UDisks2',
-                        '/org/freedesktop/UDisks2/block_devices/%s'%devname)
+        bd = self.bus.get_object(
+            'org.freedesktop.UDisks2',
+            f'/org/freedesktop/UDisks2/block_devices/{devname}',
+        )
         try:
             device = bd.Get(self.BLOCK, 'Device',
                 dbus_interface='org.freedesktop.DBus.Properties')
@@ -123,8 +124,10 @@ class UDisks2(object):
                         '/org/freedesktop/UDisks2/block_devices')
         xml = devs.Introspect(dbus_interface='org.freedesktop.DBus.Introspectable')
         for dev in re.finditer(r'name=[\'"](.+?)[\'"]', type('')(xml)):
-            bd = self.bus.get_object('org.freedesktop.UDisks2',
-                '/org/freedesktop/UDisks2/block_devices/%s2'%dev.group(1))
+            bd = self.bus.get_object(
+                'org.freedesktop.UDisks2',
+                f'/org/freedesktop/UDisks2/block_devices/{dev.group(1)}2',
+            )
             try:
                 device = bd.Get(self.BLOCK, 'Device',
                     dbus_interface='org.freedesktop.DBus.Properties')

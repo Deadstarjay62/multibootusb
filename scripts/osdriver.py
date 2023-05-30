@@ -64,7 +64,7 @@ def resource_path(relativePath):
         fullpath = os.path.join(dir_, relativePath)
         if os.path.exists(fullpath):
             return fullpath
-    log("Could not find resource '%s'." % relativePath)
+    log(f"Could not find resource '{relativePath}'.")
 
 
 def get_physical_disk_number(usb_disk):
@@ -86,7 +86,7 @@ def wmi_get_drive_info(usb_disk):
         for disk in logical_disks:
             if disk.Caption == usb_disk:
                 return (partition, disk)
-    raise RuntimeError('Failed to obtain drive information ' + usb_disk)
+    raise RuntimeError(f'Failed to obtain drive information {usb_disk}')
 
 
 def collect_relevant_info(obj, tuple_name, attributes, named_tuple):
@@ -149,7 +149,7 @@ def wmi_get_physicaldrive_info_all():
 def wmi_get_volume_info_on(diskIndex):
     L = [volumes for (dindex, volumes) in wmi_get_volume_info_all().items()
          if dindex==diskIndex]
-    return [] if len(L)==0 else L[0]
+    return [] if not L else L[0]
 
 
 def wmi_get_volume_info_all():
@@ -159,7 +159,7 @@ def wmi_get_volume_info_all():
                               p.associators("Win32_LogicalDiskToPartition")))
             for p in wmi.WMI().Win32_DiskPartition()]:
         r.setdefault(dindex, []).extend(volumes)
-    for dindex, volumes in r.items():
+    for volumes in r.values():
         volumes.sort(key=lambda x: x.DeviceID)
     return r
 
@@ -187,51 +187,50 @@ def wmi_get_volume_info_ex(usb_disk):
     mount_point = usb_disk + '\\'
     size_total, size_used, size_free \
         = shutil.disk_usage(mount_point)[:3]
-    r = {
-        'uuid' : uuid,
-        'file_system' : disk.FileSystem,
-        'label' : disk.VolumeName.strip() or 'No_label',
-        'mount_point' : mount_point,
-        'size_total' : size_total,
-        'size_used'  : size_used,
-        'size_free'  : size_free,
-        'vendor'     : 'Not_Found',
-        'model'      : 'Not_Found',
-        'devtype'    : 'partition',
-        'mediatype'    : {
-            0 : 'Unknown',
-            1 : 'Fixed Disk',
-            2 : 'Removable Disk',
-            3 : 'Local Disk',
-            4 : 'Network Drive',
-            5 : 'Compact Disc',
-            6 : 'RAM Disk',
+    return {
+        'uuid': uuid,
+        'file_system': disk.FileSystem,
+        'label': disk.VolumeName.strip() or 'No_label',
+        'mount_point': mount_point,
+        'size_total': size_total,
+        'size_used': size_used,
+        'size_free': size_free,
+        'vendor': 'Not_Found',
+        'model': 'Not_Found',
+        'devtype': 'partition',
+        'mediatype': {
+            0: 'Unknown',
+            1: 'Fixed Disk',
+            2: 'Removable Disk',
+            3: 'Local Disk',
+            4: 'Network Drive',
+            5: 'Compact Disc',
+            6: 'RAM Disk',
         }.get(disk.DriveType, 'DiskType(%d)' % disk.DriveType),
-        'disk_index' : partition.DiskIndex,
+        'disk_index': partition.DiskIndex,
     }
-    # print (r)
-    return r
 
 def wmi_get_physicaldrive_info_ex(diskIndex):
-   drv_list = [d for d in wmi.WMI().Win32_DiskDrive()
-               if d.Index == diskIndex]
-   assert len(drv_list)==1
-   d = collect_relevant_physicaldrive_info(drv_list[0])
-   r = {}
-   for src, dst in [
-           ('Size', 'size_total'),
-           ('Model', 'model'),
-           ('Manufacturer', 'vendor'),
-           ('MediaType', 'mediatype'),
-           ('SerialNumber', 'uuid'),
-           ('DeviceID', 'label'),
-           ]:
-       r[dst] = getattr(d, src)
-   r['devtype'] = 'disk'
-   r['size_free'] = 0
-   r['file_system'] = 'N/A'
-   r['mount_point'] = 'N/A'
-   return r
+    drv_list = [d for d in wmi.WMI().Win32_DiskDrive()
+                if d.Index == diskIndex]
+    assert len(drv_list)==1
+    d = collect_relevant_physicaldrive_info(drv_list[0])
+    r = {
+        dst: getattr(d, src)
+        for src, dst in [
+            ('Size', 'size_total'),
+            ('Model', 'model'),
+            ('Manufacturer', 'vendor'),
+            ('MediaType', 'mediatype'),
+            ('SerialNumber', 'uuid'),
+            ('DeviceID', 'label'),
+        ]
+    }
+    r['devtype'] = 'disk'
+    r['size_free'] = 0
+    r['file_system'] = 'N/A'
+    r['mount_point'] = 'N/A'
+    return r
 
 
 def win_physicaldrive_to_listbox_entry(pdrive):
@@ -244,21 +243,30 @@ def win_volume_to_listbox_entry(v):
 class Base:
 
     def run_dd(self, input, output, bs, count):
-        cmd = [self.dd_exe, 'if='+input, 'of='+output,
-               'bs=%d' % bs, 'count=%d'%count]
+        cmd = [
+            self.dd_exe,
+            f'if={input}',
+            f'of={output}',
+            'bs=%d' % bs,
+            'count=%d' % count,
+        ]
         self.dd_add_args(cmd, input, output, bs, count)
         if subprocess.call(cmd) != 0:
-            log('Failed to execute [%s]' % str(cmd))
+            log(f'Failed to execute [{cmd}]')
         else:
-            log("%s succeeded." % str(cmd))
+            log(f"{cmd} succeeded.")
 
 
     def dd_iso_image(self, input_, output, gui_update, status_update):
         ''' Implementation for OS that use dd to write the iso image. 
         '''
         in_file_size = os.path.getsize(input_)
-        cmd = [self.dd_exe, 'if=' + input_,
-               'of=' + self.physical_disk(output), 'bs=1M']
+        cmd = [
+            self.dd_exe,
+            f'if={input_}',
+            f'of={self.physical_disk(output)}',
+            'bs=1M',
+        ]
         self.dd_iso_image_add_args(cmd, input_, output)
         kw_args = {
             'stdout' : subprocess.PIPE,
@@ -267,15 +275,15 @@ class Base:
             }
         self.add_dd_iso_image_popen_args(kw_args)
         self.dd_iso_image_prepare(input, output, status_update)
-        log('Executing => ' + str(cmd))
+        log(f'Executing => {cmd}')
         dd_process = subprocess.Popen(cmd, **kw_args)
         output_q = queue.Queue()
         while dd_process.poll() is None:
             self.dd_iso_image_readoutput(dd_process, gui_update, in_file_size,
                                          output_q)
-        output_lines = [output_q.get() for i in range(output_q.qsize())]
+        output_lines = [output_q.get() for _ in range(output_q.qsize())]
         for l in output_lines:
-            log('dd: ' + l)
+            log(f'dd: {l}')
         return self.dd_iso_image_interpret_result(
             dd_process.returncode, output_lines)
 
@@ -322,24 +330,18 @@ class Windows(Base):
             for p in wmi.WMI().Win32_DiskPartition():
                 if p.DiskIndex == diskIndex:
                     return p.Type.startswith('GPT:')
-            log(usb_disk_desc(dev_name) + ' seems not partitioned. ' +
-                'assuming msdos.')
+            log(f'{usb_disk_desc(dev_name)} seems not partitioned. assuming msdos.')
             return False
         else:
             partition, disk = wmi_get_drive_info(dev_name)
             return  partition.Type.startswith('GPT:')
 
     def usb_disk_desc(self, dev_name):
-        if type(dev_name) is int:
-            return 'PhysicalDrive%d' % dev_name
-        return dev_name
+        return 'PhysicalDrive%d' % dev_name if type(dev_name) is int else dev_name
 
     def listbox_entry_to_device(self, lb_entry):
         left = lb_entry.split(':', 1)[0]
-        if left.isdigit():
-            return int(left)  # see win_physicaldrive_to_listbox_entry()
-        else:
-            return lb_entry     # see win_volume_to_listbox_entry()
+        return int(left) if left.isdigit() else lb_entry
 
     def qemu_more_params(self, disk):
         return ['-L', '.', '-boot', 'c', '-hda', self.physical_disk(disk)]
@@ -370,13 +372,12 @@ class Linux(Base):
         dd_process.stderr.flush()
         while True:
             time.sleep(0.1)
-            out_error = dd_process.stderr.readline().decode()
-            if out_error:
+            if out_error := dd_process.stderr.readline().decode():
                 if 'bytes' in out_error:
                     bytes_copied = float(out_error.split(' ', 1)[0])
                     gui_update( bytes_copied / in_file_size * 100. )
                     break
-                if 15 < output_q.qsize():
+                if output_q.qsize() > 15:
                     output_q.get()
                 output_q.put(out_error.rstrip())
             else:
@@ -415,8 +416,7 @@ class Linux(Base):
             return False
         if b'gpt' in _cmd_out:
             return True
-        raise RuntimeError("Disk '%s' is uninitialized and not usable." %
-                           disk_dev)
+        raise RuntimeError(f"Disk '{disk_dev}' is uninitialized and not usable.")
 
     def usb_disk_desc(self, dev_name):
         return dev_name
@@ -432,7 +432,7 @@ driverClass = {
     'Linux'   : Linux,
 }.get(platform.system(), None)
 if driverClass is None:
-    raise Exception('Platform [%s] is not supported.' % platform.system())
+    raise Exception(f'Platform [{platform.system()}] is not supported.')
 osdriver = driverClass()
 
 for func_name in [

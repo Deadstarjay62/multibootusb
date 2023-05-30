@@ -91,14 +91,13 @@ def _get_pipe2_implementation():
 Return a function implementing ``pipe2``."""
     if hasattr(os, 'pipe2'):
         return os.pipe2 # pylint: disable=no-member
-    else:
-        try:
-            libc = load_ctypes_library("libc", SIGNATURES, ERROR_CHECKERS)
-            return (partial(_pipe2_ctypes, libc)
-                    if hasattr(libc, 'pipe2') else
-                    _pipe2_by_pipe)
-        except ImportError:
-            return _pipe2_by_pipe
+    try:
+        libc = load_ctypes_library("libc", SIGNATURES, ERROR_CHECKERS)
+        return (partial(_pipe2_ctypes, libc)
+                if hasattr(libc, 'pipe2') else
+                _pipe2_by_pipe)
+    except ImportError:
+        return _pipe2_by_pipe
 
 
 _PIPE2 = _get_pipe2_implementation()

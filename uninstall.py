@@ -10,24 +10,23 @@ import os
 import sys
 import shutil
 
-if not os.getuid() == 0:
+if os.getuid() != 0:
     print("You must run this file with admin privilege.")
     print("Try sudo ./uninstall.py")
     sys.exit(0)
-else:
-    if os.path.exists("./.install_files.txt"):
-        with open("./.install_files.txt", "r") as f:
-            file_list = f.readlines()
-        for f in file_list:
-            print("Removing " + f.replace('\n', ''))
-            if os.path.isfile(f.replace('\n', '')):
-                os.remove(f.replace('\n', ''))
-            elif os.path.isdir(f.replace('\n', '')):
-                shutil.rmtree(f.replace('\n', ''))
-        if os.path.exists('/usr/share/multibootusb'):
-            shutil.rmtree('/usr/share/multibootusb')
+elif os.path.exists("./.install_files.txt"):
+    with open("./.install_files.txt", "r") as f:
+        file_list = f.readlines()
+    for f in file_list:
+        print("Removing " + f.replace('\n', ''))
+        if os.path.isfile(f.replace('\n', '')):
+            os.remove(f.replace('\n', ''))
+        elif os.path.isdir(f.replace('\n', '')):
+            shutil.rmtree(f.replace('\n', ''))
+    if os.path.exists('/usr/share/multibootusb'):
+        shutil.rmtree('/usr/share/multibootusb')
 
-        print("multibootusb is successfully unistalled...")
-    else:
-        print("Unable to find install file list.")
-        print("This script works only if you have installed multibootusb using install.py script.")
+    print("multibootusb is successfully unistalled...")
+else:
+    print("Unable to find install file list.")
+    print("This script works only if you have installed multibootusb using install.py script.")

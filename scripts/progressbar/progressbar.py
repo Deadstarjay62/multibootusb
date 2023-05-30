@@ -197,13 +197,12 @@ class ProgressBar(object):
 
         for index, widget in enumerate(self.widgets):
             if isinstance(widget, widgets.WidgetHFill):
-                result.append(widget)
                 expanding.insert(0, index)
             else:
                 widget = widgets.format_updatable(widget, self)
-                result.append(widget)
                 width -= len(widget)
 
+            result.append(widget)
         count = len(expanding)
         while count:
             portion = max(int(math.ceil(width * 1. / count)), 0)
